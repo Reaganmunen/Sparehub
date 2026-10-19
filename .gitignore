@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Uploaded files (product images, receipts, etc.)
+uploads/
+public/uploads/
+
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+
+# Build / coverage / cache
+dist/
+build/
+coverage/
+.nyc_output/
+.cache/
+
+# Database dumps / backups
+*.sql.bak
+*.dump
+*.backup
