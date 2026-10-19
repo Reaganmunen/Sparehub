@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<style>
+  body{min-height:100vh}
+  .shell{min-height:100vh;padding:16px}
+  .frame{background:var(--card);border:1px solid var(--line);border-radius:24px;overflow:hidden;min-height:calc(100vh - 32px);
+    box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 60px rgba(40,30,20,.08)}
+  .form-side{padding:clamp(20px,4vw,56px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--soft)}
+  .brand{margin-bottom:28px;display:flex;align-items:center;gap:10px;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:8px 12px;width:fit-content}
+  .brand .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#2a2a2a,#141414);color:#fff;display:grid;place-items:center}
+  .brand .logo i{color:var(--red-2)}
+  .brand b{font-size:.95rem;font-weight:600;display:block;line-height:1.1}
+  .brand small{color:var(--muted);font-size:.72rem}
+  .form-wrap{max-width:440px;width:100%;padding:clamp(24px,3.5vw,40px);background:var(--card);border:1px solid var(--line);border-radius:28px;
+    box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 50px rgba(60,30,20,.10),0 0 0 6px rgba(229,50,45,.05)}
+  h1{font-size:1.9rem;font-weight:600;letter-spacing:-.02em;margin:0 0 6px}
+  .sub{color:var(--muted);margin-bottom:28px}
+  .field{position:relative;margin-bottom:16px}
+  .field label{margin-bottom:6px}
+  .field .bi.lead-i{position:absolute;left:14px;bottom:13px;color:var(--muted)}
+  .form-control{height:48px;border-radius:12px;border:1px solid var(--line);background:var(--soft);padding-left:42px;font-size:.95rem}
+  .form-control:focus{background:#fff;border-color:var(--red);box-shadow:0 0 0 4px rgba(229,50,45,.12)}
+  .peek{position:absolute;right:6px;bottom:6px;border:0;background:none;width:36px;height:36px;border-radius:10px;color:var(--muted)}
+  .peek:hover{background:var(--line)}
+  #alert{background:var(--red-soft);color:#a3140f;border:1px solid #f6c9c6;border-radius:12px;font-size:.88rem;padding:10px 14px;margin-bottom:16px}
+  .foot{color:var(--muted);font-size:.8rem}
+  input:-webkit-autofill{-webkit-box-shadow:0 0 0 40px var(--soft) inset;-webkit-text-fill-color:var(--ink)}
+
+  /* showcase panel: gradient + glass */
+  .show-side{position:relative;overflow:hidden;margin:12px;border-radius:18px;padding:clamp(20px,3vw,40px);
+    background:radial-gradient(520px 340px at 85% 8%,rgba(255,122,99,.55),transparent 70%),
+               radial-gradient(480px 420px at 5% 95%,rgba(229,50,45,.35),transparent 70%),
+               linear-gradient(145deg,#e9e7e2,#d9d6cf);display:flex;flex-direction:column;justify-content:center;gap:16px}
+  .glass{background:rgba(255,255,255,.55);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);
+    border:1px solid rgba(255,255,255,.7);border-radius:18px;box-shadow:0 10px 30px rgba(60,30,20,.10)}
+  .stat{padding:14px 16px}
+  .stat .v{font-family:var(--mono);font-size:1.35rem;font-weight:600;margin-top:4px}
+  .stat .d{font-size:.75rem;color:var(--ok);font-family:var(--mono)}
+  .bars{display:flex;gap:3px;align-items:flex-end;height:26px}
+  .bars span{width:3px;background:#1a1a1a;border-radius:2px}
+  .bars span:nth-child(odd){background:#bdb9b2}
+  .chart{padding:18px}
+  #pixels{display:grid;gap:3px;margin-top:14px}
+  #pixels i{aspect-ratio:1;border-radius:2px;background:rgba(0,0,0,.05)}
+  #pixels i.ghost{background:rgba(0,0,0,.09)}
+  #pixels i.on{background:#141414}
+  #pixels i.pk{background:linear-gradient(180deg,var(--red-2),var(--red))}
+  .row-tx{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;padding:10px 16px}
+  .pill{font-size:.72rem;padding:2px 10px;border-radius:99px;border:1px solid var(--line);background:#fff}
+  .pill.ok::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:6px}
+  .pill.wait::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#e9a23b;margin-right:6px}
+  .note{font-size:.72rem;color:rgba(20,20,20,.55);text-align:center}
+  @media (prefers-reduced-motion:no-preference){.frame{animation:rise .5s ease both}@keyframes rise{from{opacity:0;transform:translateY(8px)}}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <div class="frame row g-0">
+    <section class="col-lg-5 form-side order-lg-2">
+
+      <div class="form-wrap">
+      <div class="brand">
+        <span class="logo"><i class="bi bi-gear-wide-connected"></i></span>
+        <span><b>Spare Hub</b><small>Boda boda &amp; tuk tuk parts</small></span>
+      </div>
+        <h1 id="formTitle">Welcome back</h1>
+        <p class="sub" id="formSub">Sign in to manage sales and stock for your shop.</p>
+        <div id="alert" class="d-none" role="alert"></div>
+
+        <form id="loginForm" autocomplete="on">
+          <div class="field">
+            <label for="username" class="label-mono d-block">Username</label>
+            <i class="bi bi-person lead-i"></i>
+            <input id="username" class="form-control" autocomplete="username" required autofocus>
+          </div>
+          <div class="field">
+            <label for="password" class="label-mono d-block">Password</label>
+            <i class="bi bi-lock lead-i"></i>
+            <input id="password" type="password" class="form-control" autocomplete="current-password" required>
+            <button type="button" class="peek" data-toggle-pass="password" aria-label="Show password"><i class="bi bi-eye"></i></button>
+          </div>
+          <button id="loginBtn" class="btn btn-ink w-100 py-2 mt-2" style="height:48px" data-label="Sign in">Sign in</button>
+        </form>
+
+        <form id="pwForm" class="d-none" autocomplete="off">
+          <input type="hidden" id="current_password">
+          <div class="field">
+            <label for="new_password" class="label-mono d-block">New password</label>
+            <i class="bi bi-key lead-i"></i>
+            <input id="new_password" type="password" class="form-control" autocomplete="new-password" minlength="6" required>
+            <button type="button" class="peek" data-toggle-pass="new_password" aria-label="Show password"><i class="bi bi-eye"></i></button>
+          </div>
+          <div class="field">
+            <label for="confirm_password" class="label-mono d-block">Confirm new password</label>
+            <i class="bi bi-key lead-i"></i>
+            <input id="confirm_password" type="password" class="form-control" autocomplete="new-password" required>
+          </div>
+          <button id="pwBtn" class="btn btn-ink w-100 py-2 mt-2" style="height:48px" data-label="Save password and continue">Save password and continue</button>
+        </form>
+      </div>
+
+      <div class="foot">Forgot your password? Ask the owner to reset it.</div>
+    </section>
+
+    <aside class="col-lg-7 d-none d-lg-block p-0 order-lg-1">
+      <div class="show-side h-100" aria-hidden="true">
+        <div class="row g-3">
+          <div class="col-6"><div class="glass stat"><div class="d-flex justify-content-between"><span class="label-mono">Today's sales</span><span class="bars"><span style="height:40%"></span><span style="height:70%"></span><span style="height:50%"></span><span style="height:100%"></span><span style="height:60%"></span></span></div><div class="v">KES 48,320</div><div class="d">+12% vs last week</div></div></div>
+          <div class="col-6"><div class="glass stat"><div class="d-flex justify-content-between"><span class="label-mono">M-Pesa share</span><span class="bars"><span style="height:60%"></span><span style="height:30%"></span><span style="height:80%"></span><span style="height:50%"></span><span style="height:90%"></span></span></div><div class="v">72%</div><div class="d">Confirmed automatically</div></div></div>
+        </div>
+        <div class="glass chart">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="label-mono">Sales trend</span>
+            <span class="mono small"><i class="bi bi-circle-fill" style="color:var(--red);font-size:.5rem"></i> Peak day</span>
+          </div>
+          <div id="pixels"></div>
+        </div>
+        <div class="glass">
+          <div class="row-tx"><span class="mono">#04910 &nbsp; Brake pad set</span><span class="pill ok">Paid</span></div>
+          <div class="row-tx border-top"><span class="mono">#04911 &nbsp; Tuk tuk clutch plate</span><span class="pill ok">Paid</span></div>
+          <div class="row-tx border-top"><span class="mono">#04912 &nbsp; Chain &amp; sprocket kit</span><span class="pill wait">Awaiting PIN</span></div>
+        </div>
+        <p class="note mb-0">Sample data shown for preview</p>
+      </div>
+    </aside>
+  </div>
+</main>
+<script src="js/api.js"></script>
+<script src="js/login.js"></script>
+</body>
+</html>

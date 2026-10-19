@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Products | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/products.css" rel="stylesheet">
+</head>
+<body class="app-body">
+<div class="app">
+  <aside id="sidebar" class="side offcanvas-lg offcanvas-start" tabindex="-1"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
+      <div class="crumb">Main menu <i class="bi bi-chevron-right small"></i> <b>Products</b></div>
+    </header>
+
+    <div class="page">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <h1 class="h3 m-0 fw-semibold">Products</h1>
+        <div class="d-flex flex-wrap gap-2" id="actions"></div>
+      </div>
+
+      <div id="notice"></div>
+
+      <div class="panel">
+        <div class="panel-h flex-wrap">
+          <span class="label-mono">Catalogue <span id="totalLabel"></span></span>
+          <div class="d-flex flex-wrap gap-2">
+            <input id="fSearch" class="form-control form-control-sm tx-search" style="width:200px" placeholder="Name, SKU, part no, barcode" aria-label="Search products">
+            <select id="fCategory" class="form-select form-select-sm pill-select" aria-label="Category"></select>
+            <select id="fBrand" class="form-select form-select-sm pill-select" aria-label="Brand"></select>
+            <select id="fStatus" class="form-select form-select-sm pill-select" aria-label="Status">
+              <option value="true" selected>Active</option><option value="false">Switched off</option><option value="">All</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive panel-b p-0">
+          <table class="table align-middle mb-0 tx">
+            <thead id="thead"></thead>
+            <tbody id="tbody"><tr><td colspan="9" class="text-center text-muted py-4">Loading products</td></tr></tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+          <small class="text-muted mono" id="pageInfo"></small>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-light border" id="prevBtn"><i class="bi bi-chevron-left"></i></button>
+            <button class="btn btn-light border" id="nextBtn"><i class="bi bi-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ Add / edit / view product ============ -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content pm">
+      <div class="modal-header">
+        <h2 class="modal-title h5 m-0" id="pmTitle">Add product</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="pmError" class="alert-x d-none mb-3"></div>
+        <div class="row g-3">
+          <div class="col-md-4"><label class="form-label" for="f_sku">SKU *</label><input id="f_sku" class="form-control" maxlength="40" autocomplete="off"></div>
+          <div class="col-md-8"><label class="form-label" for="f_name">Product name *</label><input id="f_name" class="form-control" maxlength="150" autocomplete="off"></div>
+          <div class="col-md-4"><label class="form-label" for="f_part">Part number</label><input id="f_part" class="form-control" autocomplete="off"></div>
+          <div class="col-md-4"><label class="form-label" for="f_barcode">Barcode</label><input id="f_barcode" class="form-control" autocomplete="off"></div>
+          <div class="col-md-4"><label class="form-label" for="f_unit">Unit</label><select id="f_unit" class="form-select"></select></div>
+          <div class="col-md-6"><label class="form-label" for="f_cat">Category</label>
+            <div class="input-group"><select id="f_cat" class="form-select"></select><button class="btn btn-light border" type="button" id="addCat" title="Add category"><i class="bi bi-plus-lg"></i></button></div></div>
+          <div class="col-md-6"><label class="form-label" for="f_brand">Brand</label>
+            <div class="input-group"><select id="f_brand" class="form-select"></select><button class="btn btn-light border" type="button" id="addBrand" title="Add brand"><i class="bi bi-plus-lg"></i></button></div></div>
+
+          <div class="col-12"><hr class="my-1"><span class="label-mono">Prices (KES)</span></div>
+          <div class="col-6 col-md-3 cost-only"><label class="form-label" for="f_buy">Buying price</label><input id="f_buy" type="number" min="0" step="0.01" class="form-control"></div>
+          <div class="col-6 col-md-3"><label class="form-label" for="f_sell">Selling price *</label><input id="f_sell" type="number" min="0" step="0.01" class="form-control"></div>
+          <div class="col-6 col-md-3 cost-only"><label class="form-label" for="f_min">Minimum price</label><input id="f_min" type="number" min="0" step="0.01" class="form-control" placeholder="= selling"></div>
+          <div class="col-6 col-md-3"><label class="form-label" for="f_whole">Wholesale price</label><input id="f_whole" type="number" min="0" step="0.01" class="form-control"></div>
+          <div class="col-6 col-md-3"><label class="form-label" for="f_tax">Tax rate %</label><input id="f_tax" type="number" min="0" step="0.01" class="form-control" value="0"></div>
+          <div class="col-6 col-md-3"><label class="form-label" for="f_reorder">Reorder level</label><input id="f_reorder" type="number" min="0" step="1" class="form-control" value="0"></div>
+          <div class="col-md-6 d-flex align-items-end"><div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="f_track" checked><label class="form-check-label" for="f_track">Track stock for this item</label></div></div>
+          <div class="col-12"><label class="form-label" for="f_desc">Notes</label><input id="f_desc" class="form-control" autocomplete="off"></div>
+
+          <div class="col-12"><hr class="my-1"><span class="label-mono">Fits these bikes / tuk tuks</span></div>
+          <div class="col-12">
+            <input id="fitSearch" class="form-control form-control-sm mb-2" placeholder="Filter vehicles (e.g. Boxer, TVS)" aria-label="Filter vehicles">
+            <div id="fitList" class="fit-list"></div>
+            <details class="mt-2" id="fitNew"><summary class="small text-muted">Vehicle not in the list? Add it</summary>
+              <div class="row g-2 mt-1">
+                <div class="col-md-3"><input id="vm_type" class="form-control form-control-sm" list="vmTypes" placeholder="Type (e.g. boda_boda)"><datalist id="vmTypes"></datalist></div>
+                <div class="col-md-3"><input id="vm_make" class="form-control form-control-sm" placeholder="Make (Bajaj)"></div>
+                <div class="col-md-4"><input id="vm_model" class="form-control form-control-sm" placeholder="Model (Boxer 150)"></div>
+                <div class="col-md-2"><button type="button" class="btn btn-sm btn-light border w-100" id="vmAdd">Add</button></div>
+              </div>
+            </details>
+          </div>
+
+          <div class="col-12" id="newShopBox"><hr class="my-1"><span class="label-mono">Sell in which shops, and stock on the shelf today</span>
+            <div id="shopRows" class="mt-2"></div></div>
+          <div class="col-12 d-none" id="stockBox"><hr class="my-1"><span class="label-mono">Stock per shop</span>
+            <div id="stockInfo" class="mt-2 small"></div>
+            <div class="small text-muted mt-1">To change quantities, use the <a href="stock.html">Stock</a> page.</div></div>
+
+          <div class="col-12 d-none" id="histBox">
+            <button type="button" class="btn btn-sm btn-light border" id="histBtn"><i class="bi bi-clock-history me-1"></i>Price history</button>
+            <div id="histList" class="small mt-2"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-ink px-4" id="pmSave">Save product</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Import ============ -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content pm">
+      <div class="modal-header"><h2 class="modal-title h5 m-0">Import products from Excel / CSV</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+      <div class="modal-body">
+        <p class="small text-muted">Existing SKUs have their details and prices updated (stock is not touched). New SKUs are created, and if a shop and quantity are given the opening stock is recorded. Bad rows are skipped and listed below.</p>
+        <button type="button" class="btn btn-sm btn-light border mb-3" id="tplBtn"><i class="bi bi-download me-1"></i>Download template</button>
+        <div class="mb-3"><label class="form-label" for="imFile">File (.xlsx or .csv)</label><input id="imFile" type="file" class="form-control" accept=".xlsx,.csv"></div>
+        <div class="mb-2"><label class="form-label" for="imBranch">Shop for opening stock (used when the file has no branch_id)</label><select id="imBranch" class="form-select"></select></div>
+        <div id="imError" class="alert-x d-none mt-3"></div>
+        <div id="imResult" class="mt-3 small"></div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-ink px-4" id="imGo">Import</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/products.js"></script>
+</body>
+</html>

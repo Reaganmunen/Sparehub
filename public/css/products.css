@@ -1,0 +1,21 @@
+/* Products page (also reusable for other form-heavy admin pages) */
+.pm .form-label{font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.pm .form-control,.pm .form-select{border-radius:10px;border-color:var(--line);font-size:.9rem}
+.pm .form-control:focus,.pm .form-select:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(229,50,45,.12)}
+.pm .form-check-input:checked{background-color:var(--red);border-color:var(--red)}
+.pm .modal-content,.modal-content.pm{border-radius:20px;border:1px solid var(--line)}
+.alert-x{background:var(--red-soft);border:1px solid #f6c9c6;color:#a3140f;border-radius:12px;padding:10px 14px;font-size:.88rem}
+.alert-ok{background:#e8f7f0;border:1px solid #bfe6d4;color:#0b6b47;border-radius:12px;padding:10px 14px;font-size:.88rem}
+.fit-list{max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--soft);display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 14px}
+.fit-list label{font-size:.85rem;display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer}
+.fit-list input{accent-color:var(--red)}
+.fit-list .vt{font-family:var(--mono);font-size:.66rem;color:var(--muted);text-transform:uppercase;grid-column:1/-1;margin-top:6px}
+.shop-row{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.shop-row:first-child{border-top:0}
+.tx tr.off td{opacity:.55}
+.tx .sku{font-family:var(--mono);font-size:.8rem}
+.tx .sub{display:block;font-size:.74rem;color:var(--muted);font-family:var(--mono)}
+.tx .ibtn{border:1px solid var(--line);background:#fff;border-radius:8px;width:32px;height:32px;color:#5c5a55}
+.tx .ibtn:hover{background:var(--red-soft);color:var(--red);border-color:#f6c9c6}
+.hist-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-family:var(--mono);font-size:.76rem}
+@media(max-width:575.98px){.shop-row{grid-template-columns:1fr 1fr}.shop-row>:first-child{grid-column:1/-1}}
