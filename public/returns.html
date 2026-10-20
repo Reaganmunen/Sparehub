@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Returns | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/products.css" rel="stylesheet">
+<link href="css/pos.css" rel="stylesheet">
+<link href="css/pages.css" rel="stylesheet">
+</head>
+<body class="app-body">
+<div class="app">
+  <aside id="sidebar" class="side offcanvas-lg offcanvas-start" tabindex="-1"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
+      <div class="crumb">Main menu <i class="bi bi-chevron-right small"></i> <b>Returns</b></div>
+    </header>
+    <div class="page">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <h1 class="h3 m-0 fw-semibold">Returns</h1>
+        <div class="d-flex flex-wrap gap-2" id="headActions"></div>
+      </div>
+      <div id="notice"></div>
+      <div class="panel">
+        <div class="panel-h"><span class="label-mono">Take back items</span></div>
+        <div class="panel-b">
+          <div id="findBox">
+            <label class="form-label label-mono" for="rcSearch">Find the sale</label>
+            <input id="rcSearch" class="form-control" placeholder="Type the receipt number or customer name" autocomplete="off">
+            <div id="rcResults" class="pick-list mt-2 d-none"></div>
+          </div>
+          <div id="rcForm" class="d-none">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+              <div><b id="rcReceipt" class="mono"></b><div class="small text-muted" id="rcMeta"></div></div>
+              <button class="btn btn-light border btn-sm" id="rcChange">Choose another sale</button>
+            </div>
+            <div id="rcErr" class="alert-x d-none mb-3"></div>
+            <div class="table-responsive"><table class="table table-sm align-middle tx mb-3"><thead><tr><th>Item</th><th class="text-end">Price</th><th class="text-end">Can return</th><th class="text-end" style="width:120px">Bring back</th></tr></thead><tbody id="rcItems"></tbody></table></div>
+            <div class="pm"><div class="row g-3">
+              <div class="col-12 col-md-6"><label class="form-label" for="rcReason">Reason *</label><input id="rcReason" class="form-control" autocomplete="off" placeholder="e.g. wrong part, faulty"></div>
+              <div class="col-12 col-md-6"><label class="form-label" for="rcNotes">Notes</label><input id="rcNotes" class="form-control" autocomplete="off"></div>
+              <div class="col-12 col-md-4"><label class="form-label" for="rcSettle">What the customer gets</label><select id="rcSettle" class="form-select"><option value="refund">Money back</option><option value="credit_note">Credit note</option><option value="exchange">Exchange</option></select></div>
+              <div class="col-6 col-md-4" id="rcMethodBox"><label class="form-label" for="rcMethod">Refund by</label><select id="rcMethod" class="form-select"><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select></div>
+              <div class="col-6 col-md-4 d-none" id="rcRefBox"><label class="form-label" for="rcRef">M-Pesa code</label><input id="rcRef" class="form-control mono" autocomplete="off"></div>
+              <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rcRestock" checked><label class="form-check-label" for="rcRestock">Put the items back into stock</label></div></div>
+              <div class="col-12 d-none" id="rcApproveBox"><div class="sum"><span class="label-mono">A manager must approve</span>
+                <div class="row g-2 mt-1"><div class="col-6"><input id="rcAUser" class="form-control form-control-sm" placeholder="Manager username" autocomplete="off" autocapitalize="none" aria-label="Manager username"></div><div class="col-6"><input id="rcAPass" type="password" class="form-control form-control-sm" placeholder="Manager password" autocomplete="new-password" aria-label="Manager password"></div></div></div></div>
+            </div></div>
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2"><div>Value of items: <b class="mono" id="rcTotal">KES 0</b></div><button id="rcGo" class="btn btn-ink px-4">Save return</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" id="histPanel">
+        <div class="panel-h flex-wrap">
+          <span class="label-mono">Returns so far <span id="total"></span></span>
+          <div class="d-flex flex-wrap gap-2"><input type="date" id="fFrom" class="form-control form-control-sm" style="width:150px" aria-label="From date"><input type="date" id="fTo" class="form-control form-control-sm" style="width:150px" aria-label="To date"></div>
+        </div>
+        <div class="table-responsive panel-b p-0"><table class="table align-middle mb-0 tx">
+          <thead><tr><th>Return</th><th>Receipt</th><th>Reason</th><th>What they got</th><th class="text-end">Value</th><th>By</th><th></th></tr></thead>
+          <tbody id="tbody"></tbody></table></div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+          <small class="text-muted mono" id="pageInfo"></small>
+          <div class="btn-group btn-group-sm"><button class="btn btn-light border" id="prevBtn" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button><button class="btn btn-light border" id="nextBtn" aria-label="Next page"><i class="bi bi-chevron-right"></i></button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="modal fade" id="rvModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="rvModalTitle">Return</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><div id="rvModalErr" class="alert-x d-none mb-3"></div>
+      <div id="rvBody"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Close</button></div>
+  </div></div>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/util.js"></script>
+<script src="js/returns.js"></script>
+</body>
+</html>

@@ -4,11 +4,11 @@ const ALL = ['owner', 'manager', 'cashier'], STAFF = ['owner', 'manager'], OWNER
 // These mirror the server's rules (src/routes/*), which still enforce them even if someone types the address.
 const NAV = [
   ['Main menu', [['dashboard', 'index.html', 'bi-grid-1x2', 'Dashboard', ALL], ['pos', 'pos.html', 'bi-bag-check', 'Point of sale', ALL],
-    ['sales', 'sales.html', 'bi-receipt', 'Sales', ALL], ['products', 'products.html', 'bi-box-seam', 'Products', STAFF], ['stock', 'stock.html', 'bi-boxes', 'Stock', ALL]]],
+    ['sales', 'sales.html', 'bi-receipt', 'Sales', ALL], ['returns', 'returns.html', 'bi-arrow-return-left', 'Returns', ALL], ['shifts', 'shifts.html', 'bi-clock-history', 'Shifts', ALL], ['products', 'products.html', 'bi-box-seam', 'Products', STAFF], ['stock', 'stock.html', 'bi-boxes', 'Stock', ALL]]],
   ['People & suppliers', [['customers', 'customers.html', 'bi-people', 'Customers & credit', ALL], ['suppliers', 'suppliers.html', 'bi-truck', 'Suppliers', STAFF],
     ['purchases', 'purchases.html', 'bi-cart-plus', 'Purchases', STAFF], ['transfers', 'transfers.html', 'bi-arrow-left-right', 'Shop transfers', STAFF]]],
   ['Management', [['reports', 'reports.html', 'bi-bar-chart-line', 'Reports', STAFF], ['expenses', 'expenses.html', 'bi-wallet2', 'Expenses', STAFF],
-    ['users', 'users.html', 'bi-person-gear', 'Users & roles', OWNER], ['audit', 'audit.html', 'bi-shield-check', 'Activity log', STAFF], ['settings', 'settings.html', 'bi-gear', 'Settings', OWNER]]],
+    ['users', 'users.html', 'bi-person-gear', 'Users & roles', OWNER], ['stocktake', 'stocktake.html', 'bi-clipboard-check', 'Stocktake', STAFF], ['catalogue', 'catalogue.html', 'bi-tags', 'Catalogue', STAFF], ['audit', 'audit.html', 'bi-shield-check', 'Activity log', STAFF], ['settings', 'settings.html', 'bi-gear', 'Settings', OWNER]]],
 ];
 const canOpen = (key, role) => NAV.some(([, items]) => items.some(([k, , , , roles]) => k === key && roles.includes(role)));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

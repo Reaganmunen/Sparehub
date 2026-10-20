@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expenses | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/products.css" rel="stylesheet">
+<link href="css/pos.css" rel="stylesheet">
+<link href="css/pages.css" rel="stylesheet">
+</head>
+<body class="app-body">
+<div class="app">
+  <aside id="sidebar" class="side offcanvas-lg offcanvas-start" tabindex="-1"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
+      <div class="crumb">Management <i class="bi bi-chevron-right small"></i> <b>Expenses</b></div>
+    </header>
+    <div class="page">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <h1 class="h3 m-0 fw-semibold">Expenses</h1>
+        <div class="d-flex flex-wrap gap-2" id="headActions"><button id="addBtn" class="btn btn-ink btn-sm px-3"><i class="bi bi-plus-lg me-1"></i>Add expense</button></div>
+      </div>
+      <div id="notice"></div>
+      <section class="row g-3" id="kpis"></section>
+      <div class="panel">
+        <div class="panel-h flex-wrap">
+          <span class="label-mono">Expenses <span id="total"></span></span>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <input id="fSearch" class="form-control form-control-sm tx-search" style="width:180px" placeholder="Search" aria-label="Search expenses">
+            <select id="fCat" class="form-select form-select-sm pill-select" aria-label="Category"></select>
+            <input type="date" id="fFrom" class="form-control form-control-sm" style="width:150px" aria-label="From date">
+            <input type="date" id="fTo" class="form-control form-control-sm" style="width:150px" aria-label="To date">
+          </div>
+        </div>
+        <div class="table-responsive panel-b p-0"><table class="table align-middle mb-0 tx">
+          <thead><tr><th>Date</th><th>Category</th><th>Details</th><th>Method</th><th class="text-end">Amount</th><th>Recorded by</th></tr></thead>
+          <tbody id="tbody"></tbody></table></div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+          <small class="text-muted mono" id="pageInfo"></small>
+          <div class="btn-group btn-group-sm"><button class="btn btn-light border" id="prevBtn" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button><button class="btn btn-light border" id="nextBtn" aria-label="Next page"><i class="bi bi-chevron-right"></i></button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="modal fade" id="eModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered "><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="eModalTitle">Add expense</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><div id="eModalErr" class="alert-x d-none mb-3"></div>
+      <div class="row g-3">
+        <div class="col-12 d-none" id="eShopBox"><label class="form-label" for="eShop">Shop</label><select id="eShop" class="form-select"></select></div>
+        <div class="col-6"><label class="form-label" for="eCat">Category *</label><select id="eCat" class="form-select"></select></div>
+        <div class="col-6"><label class="form-label" for="eAmount">Amount (KES) *</label><input id="eAmount" type="number" min="0" step="1" class="form-control mono"></div>
+        <div class="col-12"><label class="form-label" for="eDesc">What was it for? *</label><input id="eDesc" class="form-control" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="eDate">Date</label><input id="eDate" type="date" class="form-control"></div>
+        <div class="col-6"><label class="form-label" for="eMethod">Paid by</label><select id="eMethod" class="form-select"><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select></div>
+        <div class="col-6"><label class="form-label" for="ePaidTo">Paid to</label><input id="ePaidTo" class="form-control" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="eRef">Reference</label><input id="eRef" class="form-control mono" autocomplete="off"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="eSave" class="btn btn-ink px-4">Save expense</button></div>
+  </div></div>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/util.js"></script>
+<script src="js/expenses.js"></script>
+</body>
+</html>

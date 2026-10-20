@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shifts | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/products.css" rel="stylesheet">
+<link href="css/pos.css" rel="stylesheet">
+<link href="css/pages.css" rel="stylesheet">
+</head>
+<body class="app-body">
+<div class="app">
+  <aside id="sidebar" class="side offcanvas-lg offcanvas-start" tabindex="-1"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
+      <div class="crumb">Main menu <i class="bi bi-chevron-right small"></i> <b>Shifts</b></div>
+    </header>
+    <div class="page">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <h1 class="h3 m-0 fw-semibold">Shifts</h1>
+        <div class="d-flex flex-wrap gap-2" id="headActions"></div>
+      </div>
+      <div id="notice"></div>
+      <div class="panel d-none" id="myPanel">
+        <div class="panel-h"><span class="label-mono">My shift</span></div>
+        <div class="panel-b d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div id="myInfo"></div>
+          <button id="myBtn" class="btn btn-ink px-4"></button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h flex-wrap">
+          <span class="label-mono">Shifts <span id="total"></span></span>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <select id="fCashier" class="form-select form-select-sm pill-select d-none" aria-label="Cashier"><option value="">All cashiers</option></select>
+            <select id="fStatus" class="form-select form-select-sm pill-select" aria-label="Status"><option value="">Open and closed</option><option value="open">Open now</option><option value="closed">Closed</option></select>
+            <input type="date" id="fFrom" class="form-control form-control-sm" style="width:150px" aria-label="From date">
+            <input type="date" id="fTo" class="form-control form-control-sm" style="width:150px" aria-label="To date">
+          </div>
+        </div>
+        <div class="table-responsive panel-b p-0"><table class="table align-middle mb-0 tx">
+          <thead><tr><th>Opened</th><th>Cashier</th><th>Shop</th><th>Status</th><th class="text-end">Expected cash</th><th class="text-end">Counted</th><th class="text-end">Difference</th><th></th></tr></thead>
+          <tbody id="tbody"></tbody></table></div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+          <small class="text-muted mono" id="pageInfo"></small>
+          <div class="btn-group btn-group-sm"><button class="btn btn-light border" id="prevBtn" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button><button class="btn btn-light border" id="nextBtn" aria-label="Next page"><i class="bi bi-chevron-right"></i></button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="modal fade" id="shModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered "><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="shModalTitle">Shift</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><div id="shModalErr" class="alert-x d-none mb-3"></div>
+      <div class="mb-3 small text-muted" id="shInfo"></div>
+      <label class="form-label" for="shCash" id="shLabel">Cash in the till</label><input id="shCash" type="number" min="0" step="1" class="form-control mono mb-3">
+      <input id="shNotes" class="form-control d-none" placeholder="Notes (optional)" aria-label="Notes">
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="shOk" class="btn btn-ink px-4">Save</button></div>
+  </div></div>
+</div>
+<div class="modal fade" id="dtModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="dtModalTitle">Shift details</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><div id="dtModalErr" class="alert-x d-none mb-3"></div>
+      <div id="dtBody" class="kv"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Close</button></div>
+  </div></div>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/util.js"></script>
+<script src="js/shifts.js"></script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/products.css" rel="stylesheet">
+<link href="css/pos.css" rel="stylesheet">
+<link href="css/pages.css" rel="stylesheet">
+</head>
+<body class="app-body">
+<div class="app">
+  <aside id="sidebar" class="side offcanvas-lg offcanvas-start" tabindex="-1"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
+      <div class="crumb">Management <i class="bi bi-chevron-right small"></i> <b>Settings</b></div>
+    </header>
+    <div class="page">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <h1 class="h3 m-0 fw-semibold">Settings</h1>
+        <div class="d-flex flex-wrap gap-2" id="headActions"></div>
+      </div>
+      <div id="notice"></div>
+      <div class="tabs-x" id="tabs"><button class="on" data-tab="biz">Business settings</button><button data-tab="shops">Shops</button></div>
+      <div id="tabBiz" class="panel">
+        <div class="panel-h"><span class="label-mono">Rules for the whole business</span><button id="setSave" class="btn btn-ink btn-sm px-3" disabled>Save changes</button></div>
+        <div class="panel-b" id="setList"><div class="text-muted">Loading settings</div></div>
+      </div>
+      <div id="tabShops" class="panel d-none">
+        <div class="panel-h"><span class="label-mono">Your shops</span><button id="shopAdd" class="btn btn-ink btn-sm px-3"><i class="bi bi-plus-lg me-1"></i>Add shop</button></div>
+        <div class="table-responsive panel-b p-0"><table class="table align-middle mb-0 tx">
+          <thead><tr><th>Shop</th><th>Code</th><th>Contact</th><th>M-Pesa till</th><th>Status</th><th></th></tr></thead>
+          <tbody id="shopBody"></tbody></table></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="modal fade" id="sModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="sModalTitle">Add shop</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><div id="sModalErr" class="alert-x d-none mb-3"></div>
+      <div class="row g-3">
+        <div class="col-8"><label class="form-label" for="sName">Shop name *</label><input id="sName" class="form-control" autocomplete="off"></div>
+        <div class="col-4"><label class="form-label" for="sCode">Code *</label><input id="sCode" class="form-control mono" maxlength="10" autocomplete="off" placeholder="BB"></div>
+        <div class="col-6" id="sTypeBox"><label class="form-label" for="sType">Type</label><input id="sType" class="form-control mono" list="sTypes" autocomplete="off"><datalist id="sTypes"><option value="boda_boda"><option value="tuk_tuk"></datalist></div>
+        <div class="col-6"><label class="form-label" for="sTown">Town</label><input id="sTown" class="form-control" autocomplete="off"></div>
+        <div class="col-12"><label class="form-label" for="sAddr">Address</label><input id="sAddr" class="form-control" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="sPhone">Phone</label><input id="sPhone" class="form-control mono" inputmode="tel" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="sEmail">Email</label><input id="sEmail" type="email" class="form-control" autocomplete="off"></div>
+        <div class="col-4"><label class="form-label" for="sPin">KRA PIN</label><input id="sPin" class="form-control mono" autocomplete="off"></div>
+        <div class="col-4"><label class="form-label" for="sTill">M-Pesa till</label><input id="sTill" class="form-control mono" inputmode="numeric" autocomplete="off"></div>
+        <div class="col-4"><label class="form-label" for="sShort">Business shortcode</label><input id="sShort" class="form-control mono" inputmode="numeric" autocomplete="off"></div>
+        <div class="col-12"><label class="form-label" for="sHead">Receipt header</label><input id="sHead" class="form-control" autocomplete="off"></div>
+        <div class="col-12"><label class="form-label" for="sFoot">Receipt footer</label><input id="sFoot" class="form-control" autocomplete="off"></div>
+        <div class="col-12 d-none" id="sActiveBox"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="sActive" checked><label class="form-check-label" for="sActive">Shop is active</label></div></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="sSave" class="btn btn-ink px-4">Save</button></div>
+  </div></div>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/util.js"></script>
+<script src="js/settings.js"></script>
+</body>
+</html>
