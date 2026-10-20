@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Purchases | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/products.css" rel="stylesheet">
+<link href="css/pos.css" rel="stylesheet">
+</head>
+<body class="app-body">
+<div class="app">
+  <aside id="sidebar" class="side offcanvas-lg offcanvas-start" tabindex="-1"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
+      <div class="crumb">People & suppliers <i class="bi bi-chevron-right small"></i> <b>Purchases</b></div>
+    </header>
+
+    <div class="page">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <h1 class="h3 m-0 fw-semibold">Purchases</h1>
+        <button id="addBtn" class="btn btn-ink btn-sm px-3"><i class="bi bi-plus-lg me-1"></i>New purchase</button>
+      </div>
+      <div id="notice"></div>
+
+      <div class="panel">
+        <div class="panel-h flex-wrap">
+          <span class="label-mono">Stock bought <span id="total"></span></span>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <input id="fSearch" class="form-control form-control-sm tx-search" style="width:190px" placeholder="No., invoice or supplier" aria-label="Search purchases">
+            <select id="fSupplier" class="form-select form-select-sm pill-select" aria-label="Supplier"></select>
+            <select id="fStatus" class="form-select form-select-sm pill-select" aria-label="Status">
+              <option value="">All statuses</option><option value="draft">Draft (not received)</option><option value="received">Received</option><option value="cancelled">Cancelled</option>
+            </select>
+            <select id="fPay" class="form-select form-select-sm pill-select" aria-label="Payment">
+              <option value="">All payments</option><option value="unpaid">Unpaid</option><option value="partial">Part paid</option><option value="paid">Paid</option>
+            </select>
+            <input id="fFrom" type="date" class="form-control form-control-sm pill-select" style="min-width:0;width:140px" aria-label="From date">
+            <input id="fTo" type="date" class="form-control form-control-sm pill-select" style="min-width:0;width:140px" aria-label="To date">
+          </div>
+        </div>
+        <div class="table-responsive panel-b p-0"><table class="table align-middle mb-0 tx">
+          <thead><tr><th>Purchase</th><th>Supplier</th><th>Shop</th><th class="text-end">Total</th><th class="text-end">Owing</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbody"></tbody></table></div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+          <small class="text-muted mono" id="pageInfo"></small>
+          <div class="btn-group btn-group-sm"><button class="btn btn-light border" id="prevBtn" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button><button class="btn btn-light border" id="nextBtn" aria-label="Next page"><i class="bi bi-chevron-right"></i></button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ new / edit purchase ============ -->
+<div class="modal fade" id="fModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="fTitle">New purchase</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="fErr" class="alert-x d-none mb-3"></div>
+      <div class="row g-3">
+        <div class="col-md-4"><label class="form-label" for="fSup">Supplier *</label><select id="fSup" class="form-select"></select><div class="small text-muted mt-1">Not listed? Add them on the <a href="suppliers.html">Suppliers</a> page first.</div></div>
+        <div class="col-md-4 d-none" id="fShopBox"><label class="form-label" for="fShop">Delivered to shop *</label><select id="fShop" class="form-select"></select></div>
+        <div class="col-md-4"><label class="form-label" for="fInv">Supplier invoice no.</label><input id="fInv" class="form-control mono" autocomplete="off"></div>
+        <div class="col-md-3"><label class="form-label" for="fDate">Purchase date</label><input id="fDate" type="date" class="form-control"></div>
+        <div class="col-md-3"><label class="form-label" for="fDue">Pay by (optional)</label><input id="fDue" type="date" class="form-control"></div>
+        <div class="col-md-3"><label class="form-label" for="fTransport">Transport cost</label><input id="fTransport" type="number" min="0" step="0.01" class="form-control mono" value="0"></div>
+        <div class="col-md-3"><label class="form-label" for="fOther">Other costs</label><input id="fOther" type="number" min="0" step="0.01" class="form-control mono" value="0"></div>
+
+        <div class="col-12"><hr class="my-1"><span class="label-mono">Products bought</span>
+          <div class="position-relative mt-2"><input id="fFind" class="form-control" placeholder="Search product by name, SKU or part number to add it" autocomplete="off" aria-label="Find product"><div id="fFindList" class="cust-list d-none"></div></div>
+          <div class="table-responsive mt-2"><table class="table table-sm align-middle tx mb-0">
+            <thead><tr><th>Product</th><th style="width:110px">Quantity</th><th style="width:140px">Buying price</th><th class="text-end" style="width:130px">Line total</th><th style="width:40px"></th></tr></thead>
+            <tbody id="fLines"></tbody></table></div>
+        </div>
+        <div class="col-md-8"><label class="form-label" for="fNotes">Notes</label><input id="fNotes" class="form-control" autocomplete="off"></div>
+        <div class="col-md-4"><div class="sum"><div class="d-flex justify-content-between"><span class="label-mono">Items</span><span class="mono" id="fItems">KES 0</span></div>
+          <div class="d-flex justify-content-between"><span class="label-mono">Transport + other</span><span class="mono" id="fExtra">KES 0</span></div>
+          <div class="d-flex justify-content-between align-items-baseline"><span class="label-mono">Total</span><span class="big mono" id="fTotal">KES 0</span></div></div></div>
+      </div>
+    </div>
+    <div class="modal-footer justify-content-between flex-wrap gap-2">
+      <small class="text-muted">Transport and other costs are shared across the products to give each its true cost.</small>
+      <div class="d-flex gap-2"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+        <button id="fDraft" class="btn btn-light border">Save as draft</button><button id="fReceive" class="btn btn-ink px-4">Save & receive stock</button></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ============ view one purchase ============ -->
+<div class="modal fade" id="vModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="vTitle">Purchase</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="vErr" class="alert-x d-none mb-3"></div>
+      <div id="vBody"></div>
+      <div id="vPayBox" class="d-none mt-3"><hr><span class="label-mono">Pay the supplier for this purchase</span>
+        <div class="row g-2 mt-1">
+          <div class="col-5"><select id="vpMethod" class="form-select form-select-sm"><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select></div>
+          <div class="col-7"><input id="vpAmount" type="number" min="0" step="1" class="form-control form-control-sm mono" placeholder="Amount" aria-label="Amount"></div>
+          <div class="col-12"><input id="vpRef" class="form-control form-control-sm mono" placeholder="Reference / M-Pesa code (optional)" aria-label="Reference"></div>
+          <div class="col-12 d-none" id="vpShopBox"><select id="vpShop" class="form-select form-select-sm" aria-label="Paid from shop"></select></div>
+          <div class="col-12"><button id="vpGo" class="btn btn-sm btn-ink w-100">Save payment</button></div>
+        </div></div>
+    </div>
+    <div class="modal-footer justify-content-between flex-wrap gap-2">
+      <div class="d-flex gap-2"><button id="vPrint" class="btn btn-sm btn-light border"><i class="bi bi-printer me-1"></i>Print</button>
+        <button id="vCancel" class="btn btn-sm btn-light border text-danger d-none"><i class="bi bi-x-octagon me-1"></i>Cancel purchase</button></div>
+      <div class="d-flex gap-2"><button id="vEdit" class="btn btn-sm btn-light border d-none"><i class="bi bi-pencil me-1"></i>Edit draft</button>
+        <button id="vPay" class="btn btn-sm btn-light border d-none"><i class="bi bi-cash-coin me-1"></i>Pay supplier</button>
+        <button id="vReceive" class="btn btn-sm btn-ink d-none"><i class="bi bi-box-arrow-in-down me-1"></i>Receive stock</button></div>
+    </div>
+  </div></div>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/purchases.js"></script>
+</body>
+</html>

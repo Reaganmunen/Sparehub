@@ -8,6 +8,13 @@ const compact = (n) => (n >= 1000 ? (n / 1000).toFixed(n % 1000 ? 1 : 0).replace
 const shopName = (id) => (state.branches.find((b) => b.id === Number(id)) || {}).name || 'Shop';
 const period = () => { const to = new Date(), from = new Date(); from.setDate(to.getDate() - (state.days - 1)); return { from: ymd(from), to: ymd(to) }; };
 
+// Cashiers get a plain dashboard: their own recent sales only. Everything that comes from reports is removed from the page.
+const cashier = me.role === 'cashier';
+if (cashier) {
+  document.querySelectorAll('[data-staff]').forEach((el) => el.remove());
+  $('salesCol').className = 'col-12'; $('salesTitle').textContent = 'My recent sales';
+}
+
 $('hello').textContent = `Welcome back, ${(me.full_name || '').split(' ')[0]}`;
 
 // ---------- KPI cards ----------
@@ -76,14 +83,16 @@ function renderSales(res) {
   const rows = res.data || [];
   $('txBody').innerHTML = rows.length ? rows.map((s) => { const [t, c] = STATUS[s.payment_status] || [s.payment_status, 'part'];
     return `<tr><td><span class="mono">${esc(s.receipt_no)}</span><div class="small text-muted">${new Date(s.sold_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div></td>
-    <td>${esc(s.customer_name || 'Walk-in')}</td><td>${esc(s.branch_name)}</td><td>${esc(s.cashier_name)}</td>
+    <td>${esc(s.customer_name || 'Walk-in')}</td><td>${esc(s.branch_name)}</td>${cashier ? '' : `<td>${esc(s.cashier_name)}</td>`}
     <td class="text-end mono fw-semibold">${KES(s.total - s.returned_total)}</td><td><span class="st ${c}">${esc(t)}</span></td></tr>`; }).join('')
-    : '<tr><td colspan="6" class="empty">No sales found.</td></tr>';
+    : `<tr><td colspan="${cashier ? 5 : 6}" class="empty">No sales found.</td></tr>`;
 }
 
 // ---------- loading ----------
-const loadSales = () => api('/sales' + qs({ branch_id: state.branchId, limit: 8, q: $('txSearch').value.trim() })).then(renderSales);
+const loadSales = () => api('/sales' + qs({ branch_id: state.branchId, mine: cashier ? 'true' : '', limit: 8, q: $('txSearch').value.trim() })).then(renderSales);
 async function load() {
+  loadSales().catch((e) => ($('txBody').innerHTML = `<tr><td colspan="${cashier ? 5 : 6}" class="empty">${esc(e.message)}</td></tr>`));
+  if (cashier) return;
   const { from, to } = period(), b = { branch_id: state.branchId };
   try {
     const [dash, daily, top, low] = await Promise.all([
@@ -94,16 +103,15 @@ async function load() {
     renderKpis(dash.data, daily.data); renderTrend(daily.data); renderBest(top.data); renderLow(low.data);
   } catch (e) {
     $('notice').classList.remove('d-none');
-    $('notice').innerHTML = `<div class="alert-x">${e.status === 403 ? 'Your account does not include reports. Use <a href="pos.html">Point of sale</a> to sell.' : esc(e.message)}</div>`;
+    $('notice').innerHTML = `<div class="alert-x">${esc(e.message)}</div>`;
   }
-  loadSales().catch((e) => ($('txBody').innerHTML = `<tr><td colspan="6" class="empty">${esc(e.message)}</td></tr>`));
 }
 
 // ---------- events ----------
-$('range').onchange = (e) => { state.days = +e.target.value; load(); };
+if (!cashier) $('range').onchange = (e) => { state.days = +e.target.value; load(); };
 let t; const search = (v) => { clearTimeout(t); $('txSearch').value = v; $('globalSearch').value = v; t = setTimeout(() => loadSales().catch(() => {}), 350); };
 $('txSearch').oninput = (e) => search(e.target.value); $('globalSearch').oninput = (e) => search(e.target.value);
-$('exportBtn').onclick = async () => {
+if (!cashier) $('exportBtn').onclick = async () => {
   const { from, to } = period(), btn = $('exportBtn'); btn.disabled = true;
   try {
     const res = await fetch(API_BASE + '/reports/daily-sales/export' + qs({ format: 'xlsx', branch_id: state.branchId, from, to }), { headers: { Authorization: 'Bearer ' + Auth.token } });

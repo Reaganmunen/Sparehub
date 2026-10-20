@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customers & credit | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/products.css" rel="stylesheet">
+<link href="css/pos.css" rel="stylesheet">
+</head>
+<body class="app-body">
+<div class="app">
+  <aside id="sidebar" class="side offcanvas-lg offcanvas-start" tabindex="-1"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
+      <div class="crumb">People & suppliers <i class="bi bi-chevron-right small"></i> <b>Customers & credit</b></div>
+    </header>
+
+    <div class="page">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <h1 class="h3 m-0 fw-semibold">Customers & credit</h1>
+        <button id="addBtn" class="btn btn-ink btn-sm px-3"><i class="bi bi-plus-lg me-1"></i>Add customer</button>
+      </div>
+      <div id="notice"></div>
+
+      <section class="row g-3" id="kpis" data-staff></section>
+
+      <div class="panel">
+        <div class="panel-h flex-wrap">
+          <span class="label-mono">Customers <span id="total"></span></span>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <input id="fSearch" class="form-control form-control-sm tx-search" style="width:200px" placeholder="Name or phone" aria-label="Search customers">
+            <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
+              <input class="form-check-input ms-0" type="checkbox" id="fOwing" role="switch"><label for="fOwing" class="small">Owing only</label>
+            </div>
+            <select id="fActive" class="form-select form-select-sm pill-select" aria-label="Status" data-staff>
+              <option value="true" selected>Active</option><option value="false">Switched off</option><option value="">All</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-responsive panel-b p-0"><table class="table align-middle mb-0 tx">
+          <thead><tr><th>Customer</th><th>Phone</th><th class="text-end">Owes</th><th data-staff class="text-end">Credit limit</th><th>Oldest due</th><th></th></tr></thead>
+          <tbody id="tbody"></tbody></table></div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+          <small class="text-muted mono" id="pageInfo"></small>
+          <div class="btn-group btn-group-sm"><button class="btn btn-light border" id="prevBtn" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button><button class="btn btn-light border" id="nextBtn" aria-label="Next page"><i class="bi bi-chevron-right"></i></button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ add / edit ============ -->
+<div class="modal fade" id="cModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="cTitle">Add customer</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="cErr" class="alert-x d-none mb-3"></div>
+      <div class="row g-3">
+        <div class="col-12"><label class="form-label" for="cName">Name *</label><input id="cName" class="form-control" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="cPhone">Phone</label><input id="cPhone" class="form-control mono" inputmode="tel" placeholder="07xx xxx xxx" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="cEmail">Email</label><input id="cEmail" type="email" class="form-control" autocomplete="off"></div>
+        <div class="col-6" id="cLimitBox"><label class="form-label" for="cLimit">Credit limit (KES)</label><input id="cLimit" type="number" min="0" step="1" class="form-control mono" placeholder="0 = no credit"></div>
+        <div class="col-6" data-staff><label class="form-label" for="cPin">KRA PIN</label><input id="cPin" class="form-control mono" autocomplete="off"></div>
+        <div class="col-12" data-staff><label class="form-label" for="cAddr">Address</label><input id="cAddr" class="form-control" autocomplete="off"></div>
+        <div class="col-12" data-staff><label class="form-label" for="cNotes">Notes</label><input id="cNotes" class="form-control" autocomplete="off"></div>
+        <div class="col-12 d-none" id="cActiveBox"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="cActive" checked><label class="form-check-label" for="cActive">Active customer</label></div></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="cSave" class="btn btn-ink px-4">Save</button></div>
+  </div></div>
+</div>
+
+<!-- ============ receive a payment ============ -->
+<div class="modal fade" id="pModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0">Receive payment</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="pErr" class="alert-x d-none mb-3"></div>
+      <div class="d-flex justify-content-between align-items-baseline mb-3"><b id="pName"></b><span class="mono">owes <b id="pOwes"></b></span></div>
+      <div class="row g-3">
+        <div class="col-6"><label class="form-label" for="pMethod">Method</label>
+          <select id="pMethod" class="form-select"><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="card">Card</option><option value="bank_transfer">Bank transfer</option></select></div>
+        <div class="col-6"><label class="form-label" for="pAmount">Amount (KES)</label><input id="pAmount" type="number" min="0" step="1" class="form-control mono"></div>
+        <div class="col-12 d-none" id="pRefBox"><label class="form-label" for="pRef" id="pRefLabel">Reference</label><input id="pRef" class="form-control mono" autocomplete="off"></div>
+        <div class="col-12 d-none" id="pShopBox"><label class="form-label" for="pShop">Shop receiving the money</label><select id="pShop" class="form-select"></select></div>
+        <div class="col-12"><input id="pNotes" class="form-control" placeholder="Note (optional)" aria-label="Note"></div>
+      </div>
+      <div class="small text-muted mt-2">The payment clears this customer's oldest unpaid sales first. Anything extra stays on their account.</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="pGo" class="btn btn-ink px-4">Save payment</button></div>
+  </div></div>
+</div>
+
+<!-- ============ statement (managers and owner) ============ -->
+<div class="modal fade" id="sModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="sTitle">Statement</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="sErr" class="alert-x d-none mb-3"></div>
+      <div id="sHead" class="d-flex flex-wrap justify-content-between gap-2 mb-3"></div>
+      <span class="label-mono">Purchases</span>
+      <div class="table-responsive mb-4"><table class="table table-sm align-middle tx mb-0"><thead><tr><th>Receipt</th><th>Date</th><th class="text-end">Total</th><th class="text-end">Paid</th><th class="text-end">Owes</th><th>Status</th></tr></thead><tbody id="sSales"></tbody></table></div>
+      <span class="label-mono">Payments</span>
+      <div id="sPays" class="mt-1"></div>
+      <div id="sVoid" class="d-none mt-3"><hr><span class="label-mono">Void this payment</span>
+        <div class="d-flex gap-2 mt-2"><input id="svReason" class="form-control form-control-sm" placeholder="Reason (required)" aria-label="Reason"><button id="svGo" class="btn btn-sm btn-outline-danger flex-none">Void</button></div></div>
+    </div>
+  </div></div>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/customers.js"></script>
+</body>
+</html>

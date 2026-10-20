@@ -248,7 +248,7 @@ if (owner) {
 // ---------- start ----------
 (async () => {
   try { await loadLookups(); } catch (e) { $('notice').innerHTML = `<div class="alert-x">${esc(e.message)}</div>`; }
-  renderShell({ active: 'products', branches: state.branches, branchId: '' });
+  renderShell({ active: 'products', branches: state.branches, branchId: owner ? '' : String(me.branch_id || '') });
   $('imBranch').innerHTML = opt('', 'None (only products, no stock)') + state.branches.map((b) => opt(b.id, b.name)).join('');
   fillSelects();
   load();

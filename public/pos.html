@@ -10,7 +10,6 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="css/app.css" rel="stylesheet">
 <link href="css/dashboard.css" rel="stylesheet">
-<link href="css/products.css" rel="stylesheet">
 <link href="css/pos.css" rel="stylesheet">
 </head>
 <body class="app-body">
@@ -20,195 +19,174 @@
     <header class="topbar">
       <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
       <div class="crumb">Main menu <i class="bi bi-chevron-right small"></i> <b>Point of sale</b></div>
-      <div class="ms-auto d-flex gap-2">
-        <button id="shiftBtn" class="btn btn-sm btn-light border d-none"><i class="bi bi-clock me-1"></i><span id="shiftLabel">Shift</span></button>
-        <button id="heldBtn" class="btn btn-sm btn-light border"><i class="bi bi-pause-circle me-1"></i>Held <span class="pill-count" id="heldCount">0</span></button>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <span id="shiftChip" class="d-none"></span>
+        <button id="heldBtn" class="btn btn-sm btn-light border"><i class="bi bi-pause-circle me-1"></i>Held <span id="heldCount" class="pill-count ms-1">0</span></button>
       </div>
     </header>
 
     <div class="page">
-      <div id="notice"></div>
-      <div class="row g-3 pos-row">
-        <!-- ===== products ===== -->
-        <div class="col-xl-7">
-          <div class="panel h-100">
-            <div class="panel-h flex-wrap">
-              <span class="label-mono">Products <span id="prodCount"></span></span>
-              <div class="d-flex flex-wrap gap-2">
-                <select id="catSel" class="form-select form-select-sm pill-select" aria-label="Category"></select>
-                <div class="form-check form-switch mb-0 d-flex align-items-center gap-2"><input class="form-check-input" type="checkbox" id="inStock" checked><label class="form-check-label small" for="inStock">In stock</label></div>
+      <div id="notice" class="d-none"></div>
+      <div class="pos">
+        <!-- ============ products ============ -->
+        <section class="panel">
+          <div class="panel-h"><span class="label-mono">Products</span><span class="small text-muted" id="resultInfo"></span></div>
+          <div class="panel-b">
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <label class="search flex-grow-1 m-0" style="width:auto;margin-left:0">
+                <i class="bi bi-upc-scan"></i>
+                <input id="q" placeholder="Scan barcode or search name, SKU, part number" autocomplete="off" autofocus aria-label="Search products">
+              </label>
+              <select id="cat" class="form-select form-select-sm pill-select" aria-label="Category"><option value="">All categories</option></select>
+              <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
+                <input class="form-check-input ms-0" type="checkbox" id="inStock" role="switch"><label for="inStock" class="small">In stock only</label>
               </div>
             </div>
-            <div class="panel-b">
-              <label class="pos-search"><i class="bi bi-upc-scan"></i>
-                <input id="q" placeholder="Scan barcode or search name, SKU, part number  (F2)" autocomplete="off" aria-label="Search products"></label>
-              <div id="grid" class="pgrid mt-3"></div>
+            <div id="grid" class="grid"></div>
+          </div>
+        </section>
+
+        <!-- ============ cart ============ -->
+        <aside class="panel cart">
+          <div class="panel-h">
+            <span class="label-mono">Current sale</span>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Sale type">
+              <input type="radio" class="btn-check" name="stype" id="st-retail" value="retail" checked><label class="btn btn-outline-dark" for="st-retail">Retail</label>
+              <input type="radio" class="btn-check" name="stype" id="st-wholesale" value="wholesale"><label class="btn btn-outline-dark" for="st-wholesale">Wholesale</label>
             </div>
           </div>
-        </div>
-
-        <!-- ===== cart ===== -->
-        <div class="col-xl-5">
-          <div class="panel cart-panel h-100">
-            <div class="panel-h"><span class="label-mono">Current sale</span>
-              <button class="btn btn-sm btn-light border" id="clearBtn"><i class="bi bi-trash3 me-1"></i>Clear</button></div>
-            <div class="panel-b d-flex flex-column gap-3">
-              <div class="seg" role="group" aria-label="Sale type">
-                <button type="button" class="on" data-type="retail">Retail</button><button type="button" data-type="wholesale">Wholesale</button>
-              </div>
-
-              <div class="position-relative">
-                <div id="custChip" class="cust-chip d-none"></div>
-                <div id="custBox" class="d-flex gap-2">
-                  <label class="search w-100 m-0" style="width:100%"><i class="bi bi-person"></i><input id="custQ" placeholder="Customer (optional, needed for credit)" autocomplete="off" aria-label="Find customer"></label>
-                  <button class="btn btn-light border" id="newCustBtn" title="New customer" aria-label="New customer"><i class="bi bi-person-plus"></i></button>
-                </div>
-                <div id="custRes" class="cust-res d-none"></div>
-              </div>
-
-              <div id="lines" class="lines"></div>
-
-              <div class="totals">
-                <div><span>Subtotal</span><span class="mono" id="tSub">KES 0</span></div>
-                <div><span>Discounts</span><span class="mono" id="tDisc">KES 0</span></div>
-                <div class="grand"><span>Total</span><span class="mono" id="tTotal">KES 0</span></div>
-              </div>
-              <div class="d-flex gap-2">
-                <button class="btn btn-light border flex-shrink-0" id="holdBtn"><i class="bi bi-pause-circle me-1"></i>Hold</button>
-                <button class="btn btn-ink flex-grow-1 py-2" id="payBtn"><i class="bi bi-cash-coin me-1"></i>Pay <span class="opacity-75 small">(F9)</span></button>
+          <div class="panel-b d-flex flex-column gap-3">
+            <div class="position-relative">
+              <div id="custChip" class="cust d-none"></div>
+              <div id="custPick">
+                <input id="custQ" class="form-control form-control-sm" placeholder="Customer (optional): search name or phone" autocomplete="off" aria-label="Customer">
+                <div id="custList" class="cust-list d-none"></div>
               </div>
             </div>
+            <div id="lines" class="lines"></div>
+            <div class="sum">
+              <div class="d-flex justify-content-between"><span class="label-mono">Items</span><span class="mono" id="itemCount">0</span></div>
+              <div class="d-flex justify-content-between align-items-baseline"><span class="label-mono">Total</span><span class="big mono" id="total">KES 0</span></div>
+            </div>
+            <input id="notes" class="form-control form-control-sm" placeholder="Note (optional)" aria-label="Note">
+            <div class="d-flex gap-2">
+              <button id="clearBtn" class="btn btn-light border" title="Clear cart"><i class="bi bi-trash3"></i></button>
+              <button id="holdBtn" class="btn btn-light border flex-fill"><i class="bi bi-pause-circle me-1"></i>Hold</button>
+              <button id="payBtn" class="btn btn-ink flex-fill py-2" disabled><i class="bi bi-cash-coin me-1"></i>Pay</button>
+            </div>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   </main>
 </div>
 
-<!-- ============ Pay ============ -->
-<div class="modal fade" id="payModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content pm">
-      <div class="modal-header"><h2 class="modal-title h5 m-0">Take payment</h2></div>
+<!-- ============ payment ============ -->
+<div class="modal fade" id="payModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Take payment</h5><button class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="payClose"></button></div>
+    <div class="modal-body">
+      <div class="d-flex justify-content-between align-items-baseline mb-3"><span class="label-mono">Amount due</span><span class="big mono" id="payTotal">KES 0</span></div>
+      <div id="payErr" class="alert-x d-none mb-3"></div>
+
       <div id="payForm">
-        <div class="modal-body">
-          <div id="payErr" class="alert-x d-none mb-3"></div>
-          <div class="text-center mb-3"><span class="label-mono">Amount to pay</span><div class="big mono" id="pTotal">KES 0</div><small class="text-muted" id="pWho"></small></div>
-          <div class="d-flex gap-2 mb-3">
-            <button class="btn btn-sm btn-light border flex-fill" id="pAllCash">All cash</button>
-            <button class="btn btn-sm btn-light border flex-fill" id="pAllMp">All M-Pesa</button>
-          </div>
-          <div class="row g-3">
-            <div class="col-6"><label class="form-label" for="p_cash">Cash received</label><input id="p_cash" type="number" min="0" step="1" class="form-control form-control-lg mono"></div>
-            <div class="col-6"><label class="form-label" for="p_mp">M-Pesa amount</label><input id="p_mp" type="number" min="0" step="1" class="form-control form-control-lg mono"></div>
-            <div class="col-12 d-none" id="mpBox">
-              <div class="seg mb-2"><button type="button" class="on" data-mode="prompt">Send prompt to phone</button><button type="button" data-mode="code">Enter M-Pesa code</button></div>
-              <input id="p_phone" class="form-control" inputmode="tel" placeholder="Customer phone e.g. 0712345678">
-              <input id="p_code" class="form-control d-none" placeholder="M-Pesa code e.g. SHK1ABC234" autocapitalize="characters">
-            </div>
-            <div class="col-12 d-none" id="dueBox"><label class="form-label" for="p_due">Credit due date (optional, defaults to 7 days)</label><input id="p_due" type="date" class="form-control"></div>
-          </div>
-          <div class="totals mt-3">
-            <div><span>Change to give</span><span class="mono" id="pChange">KES 0</span></div>
-            <div><span>On credit</span><span class="mono" id="pCredit">KES 0</span></div>
-          </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6"><label class="form-label small mb-1">Method</label>
+            <select id="pMethod" class="form-select form-select-sm">
+              <option value="cash">Cash</option><option value="mpesa_stk">M-Pesa: send prompt to phone</option><option value="mpesa">M-Pesa: I have the code</option>
+              <option value="card">Card</option><option value="bank_transfer">Bank transfer</option>
+            </select></div>
+          <div class="col-6"><label class="form-label small mb-1">Amount</label><input id="pAmount" type="number" min="0" step="1" class="form-control form-control-sm mono"></div>
+          <div class="col-12 d-none" id="pRefRow"><label class="form-label small mb-1" id="pRefLabel">Reference</label><input id="pRef" class="form-control form-control-sm mono" autocomplete="off"></div>
         </div>
-        <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button class="btn btn-ink px-4" id="pConfirm">Complete sale</button></div>
-      </div>
-      <div id="payWait" class="d-none">
-        <div class="modal-body text-center">
-          <div id="wBusy"><div class="spinner-border text-danger mb-3" role="status"></div>
-            <h3 class="h6 mb-1">Waiting for the customer</h3><p class="small text-muted mb-0" id="wMsg">A prompt was sent. Ask them to enter their M-Pesa PIN.</p></div>
-          <div id="wFail" class="d-none"><i class="bi bi-exclamation-circle fs-1 text-danger"></i><p class="mb-0" id="wFailMsg"></p></div>
-          <div class="text-start mt-3" id="wTools">
-            <label class="form-label" for="wPhone">Phone</label><div class="input-group mb-2"><input id="wPhone" class="form-control" inputmode="tel"><button class="btn btn-light border" id="wRetry">Send again</button></div>
-            <label class="form-label" for="wCode">Or enter the M-Pesa code (customer paid straight to the Till)</label><div class="input-group"><input id="wCode" class="form-control" placeholder="SHK1ABC234" autocapitalize="characters"><button class="btn btn-light border" id="wManual">Confirm code</button></div>
-          </div>
+        <button id="pAdd" class="btn btn-sm btn-light border w-100 mb-3"><i class="bi bi-plus-lg me-1"></i>Add this payment</button>
+        <div id="payLines" class="mb-3"></div>
+        <div class="sum">
+          <div class="d-flex justify-content-between"><span class="label-mono">Paid</span><span class="mono" id="paidSum">KES 0</span></div>
+          <div class="d-flex justify-content-between"><span class="label-mono" id="remLabel">Left to pay</span><span class="mono fw-semibold" id="remSum">KES 0</span></div>
+          <div class="d-flex justify-content-between d-none" id="changeRow"><span class="label-mono">Change to give</span><span class="mono fw-semibold" id="changeSum">KES 0</span></div>
         </div>
-        <div class="modal-footer"><button class="btn btn-light border" id="wCancel">Stop waiting (keep sale on hold)</button></div>
+        <div class="small text-muted mt-2 d-none" id="creditNote"></div>
+      </div>
+
+      <div id="stkWait" class="text-center py-3 d-none">
+        <div class="spinner-border mb-3" role="status"></div>
+        <div class="fw-semibold" id="stkMsg">Waiting for the customer to enter their M-Pesa PIN</div>
+        <div class="small text-muted" id="stkSub"></div>
+        <button id="stkCancel" class="btn btn-sm btn-light border mt-3">Stop waiting</button>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- ============ Manager approval ============ -->
-<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
-    <div class="modal-content pm">
-      <div class="modal-header"><h2 class="modal-title h6 m-0">Manager approval</h2></div>
-      <div class="modal-body">
-        <p class="small" id="apMsg">A manager must approve this.</p>
-        <label class="form-label" for="apUser">Manager username</label><input id="apUser" class="form-control mb-2" autocomplete="off">
-        <label class="form-label" for="apPass">Password</label><input id="apPass" type="password" class="form-control" autocomplete="off">
-      </div>
-      <div class="modal-footer"><button class="btn btn-light border" id="apNo">Cancel</button><button class="btn btn-ink" id="apYes">Approve</button></div>
+    <div class="modal-footer" id="payFoot">
+      <button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+      <button id="confirmPay" class="btn btn-ink px-4" disabled>Complete sale</button>
     </div>
-  </div>
+  </div></div>
 </div>
 
-<!-- ============ Receipt ============ -->
-<div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content pm">
-      <div class="modal-header"><h2 class="modal-title h5 m-0"><i class="bi bi-check-circle-fill text-success me-2"></i>Sale complete</h2></div>
-      <div class="modal-body"><div id="rcptBox" class="rcpt"></div>
-        <label class="form-label mt-3" for="rcPhone">WhatsApp number</label><input id="rcPhone" class="form-control" inputmode="tel" placeholder="0712345678"></div>
-      <div class="modal-footer flex-wrap">
-        <button class="btn btn-light border" id="rcPrint"><i class="bi bi-printer me-1"></i>Print</button>
-        <button class="btn btn-light border" id="rcWa"><i class="bi bi-whatsapp me-1"></i>WhatsApp</button>
-        <button class="btn btn-light border" id="rcCopy"><i class="bi bi-clipboard me-1"></i>Copy</button>
-        <button class="btn btn-ink px-4 ms-auto" id="rcDone">New sale</button>
-      </div>
+<!-- ============ manager approval ============ -->
+<div class="modal fade" id="apprModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Manager approval</h5><button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <p class="small text-muted" id="apprWhy"></p>
+      <input id="apprUser" class="form-control form-control-sm mb-2" placeholder="Manager username" autocomplete="off" aria-label="Manager username">
+      <input id="apprPass" type="password" class="form-control form-control-sm" placeholder="Password" autocomplete="off" aria-label="Manager password">
+      <div id="apprErr" class="small text-danger mt-2 d-none"></div>
     </div>
-  </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="apprOk" class="btn btn-ink">Approve</button></div>
+  </div></div>
 </div>
 
-<!-- ============ Held sales ============ -->
+<!-- ============ held carts ============ -->
 <div class="modal fade" id="heldModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content pm">
-      <div class="modal-header"><h2 class="modal-title h5 m-0">Held sales</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-      <div class="modal-body" id="heldList"></div>
-    </div>
-  </div>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Held sales</h5><button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body" id="heldBody"></div>
+  </div></div>
 </div>
 
-<!-- ============ New customer ============ -->
+<!-- ============ shift ============ -->
+<div class="modal fade" id="shiftModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="shiftTitle">Open your shift</h5><button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="shiftInfo" class="small text-muted mb-2"></div>
+      <label class="form-label small mb-1" id="shiftLabel">Cash in the till now</label>
+      <input id="shiftCash" type="number" min="0" step="1" class="form-control form-control-sm mono" value="0">
+      <input id="shiftNotes" class="form-control form-control-sm mt-2 d-none" placeholder="Notes (optional)" aria-label="Shift notes">
+      <div id="shiftErr" class="small text-danger mt-2 d-none"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="shiftOk" class="btn btn-ink">Open shift</button></div>
+  </div></div>
+</div>
+
+<!-- ============ new customer ============ -->
 <div class="modal fade" id="custModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
-    <div class="modal-content pm">
-      <div class="modal-header"><h2 class="modal-title h6 m-0">New customer</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-      <div class="modal-body"><div id="custErr" class="alert-x d-none mb-2"></div>
-        <label class="form-label" for="cName">Name</label><input id="cName" class="form-control mb-2" autocomplete="off">
-        <label class="form-label" for="cPhone">Phone</label><input id="cPhone" class="form-control" inputmode="tel" placeholder="0712345678"></div>
-      <div class="modal-footer"><button class="btn btn-ink" id="cSave">Save and select</button></div>
+  <div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">New customer</h5><button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <input id="ncName" class="form-control form-control-sm mb-2" placeholder="Name" aria-label="Customer name">
+      <input id="ncPhone" class="form-control form-control-sm" placeholder="Phone (07xx xxx xxx)" inputmode="tel" aria-label="Customer phone">
+      <div id="ncErr" class="small text-danger mt-2 d-none"></div>
     </div>
-  </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="ncOk" class="btn btn-ink">Save</button></div>
+  </div></div>
 </div>
 
-<!-- ============ Shift ============ -->
-<div class="modal fade" id="shiftOpenModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
-    <div class="modal-content pm">
-      <div class="modal-header"><h2 class="modal-title h6 m-0">Open your shift</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-      <div class="modal-body"><div id="soErr" class="alert-x d-none mb-2"></div>
-        <label class="form-label" for="soFloat">Cash in the drawer now (KES)</label><input id="soFloat" type="number" min="0" step="1" class="form-control" value="0"></div>
-      <div class="modal-footer"><button class="btn btn-ink" id="soGo">Open shift</button></div>
+<!-- ============ receipt ============ -->
+<div class="modal fade" id="rcptModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-sm"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-check-circle-fill text-success me-2"></i>Sale complete</h5></div>
+    <div class="modal-body"><pre id="rcptText" class="rcpt"></pre></div>
+    <div class="modal-footer justify-content-between">
+      <div class="d-flex gap-2"><button id="rcptPrint" class="btn btn-sm btn-light border"><i class="bi bi-printer me-1"></i>Print</button>
+        <a id="rcptWa" class="btn btn-sm btn-light border d-none" target="_blank" rel="noopener"><i class="bi bi-whatsapp me-1"></i>WhatsApp</a></div>
+      <button class="btn btn-ink btn-sm px-3" data-bs-dismiss="modal" id="rcptDone">New sale</button>
     </div>
-  </div>
+  </div></div>
 </div>
-<div class="modal fade" id="shiftCloseModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content pm">
-      <div class="modal-header"><h2 class="modal-title h6 m-0">Close shift</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-      <div class="modal-body"><div id="scErr" class="alert-x d-none mb-2"></div>
-        <div id="scForm"><label class="form-label" for="scCash">Cash counted in the drawer (KES)</label><input id="scCash" type="number" min="0" step="1" class="form-control mb-2">
-          <label class="form-label" for="scNotes">Notes</label><input id="scNotes" class="form-control"></div>
-        <div id="scSummary" class="small"></div></div>
-      <div class="modal-footer"><button class="btn btn-ink" id="scGo">Close shift</button></div>
-    </div>
-  </div>
-</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/api.js"></script>

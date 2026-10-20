@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/products.css" rel="stylesheet">
+<link href="css/pos.css" rel="stylesheet">
+</head>
+<body class="app-body">
+<div class="app">
+  <aside id="sidebar" class="side offcanvas-lg offcanvas-start" tabindex="-1"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
+      <div class="crumb">Main menu <i class="bi bi-chevron-right small"></i> <b>Sales</b></div>
+    </header>
+
+    <div class="page">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <h1 class="h3 m-0 fw-semibold" id="title">Sales</h1>
+        <a class="btn btn-ink btn-sm px-3" href="pos.html"><i class="bi bi-plus-lg me-1"></i>New sale</a>
+      </div>
+      <div id="notice"></div>
+
+      <div class="panel">
+        <div class="panel-h flex-wrap">
+          <span class="label-mono">Receipts <span id="totalLabel"></span></span>
+          <div class="d-flex flex-wrap gap-2">
+            <input id="fSearch" class="form-control form-control-sm tx-search" style="width:190px" placeholder="Receipt no or customer" aria-label="Search sales">
+            <select id="fPay" class="form-select form-select-sm pill-select" aria-label="Payment status">
+              <option value="">All payments</option><option value="paid">Paid</option><option value="partial">Part paid</option><option value="unpaid">Unpaid (credit)</option>
+            </select>
+            <select id="fStatus" class="form-select form-select-sm pill-select" aria-label="Sale status">
+              <option value="completed" selected>Completed</option><option value="voided">Voided</option><option value="all">All</option>
+            </select>
+            <input id="fFrom" type="date" class="form-control form-control-sm pill-select" style="min-width:0;width:140px" aria-label="From date">
+            <input id="fTo" type="date" class="form-control form-control-sm pill-select" style="min-width:0;width:140px" aria-label="To date">
+          </div>
+        </div>
+        <div class="table-responsive panel-b p-0">
+          <table class="table align-middle mb-0 tx">
+            <thead><tr><th>Receipt</th><th>Customer</th><th>Shop</th><th data-staff>Cashier</th><th class="text-end">Total</th><th>Status</th><th></th></tr></thead>
+            <tbody id="tbody"><tr><td colspan="7" class="text-center text-muted py-4">Loading sales</td></tr></tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+          <small class="text-muted mono" id="pageInfo"></small>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-light border" id="prevBtn" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button>
+            <button class="btn btn-light border" id="nextBtn" aria-label="Next page"><i class="bi bi-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ one sale ============ -->
+<div class="modal fade" id="saleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content pm">
+      <div class="modal-header"><h2 class="modal-title h5 m-0" id="smTitle">Sale</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+      <div class="modal-body">
+        <div id="smErr" class="alert-x d-none mb-3"></div>
+        <div id="smBody"></div>
+
+        <div id="payBox" class="d-none mt-3">
+          <hr><span class="label-mono">Receive a payment</span>
+          <div class="row g-2 mt-1">
+            <div class="col-5"><select id="apMethod" class="form-select form-select-sm"><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="card">Card</option><option value="bank_transfer">Bank transfer</option></select></div>
+            <div class="col-7"><input id="apAmount" type="number" min="0" step="1" class="form-control form-control-sm mono" placeholder="Amount" aria-label="Amount"></div>
+            <div class="col-12"><input id="apRef" class="form-control form-control-sm mono" placeholder="M-Pesa code / reference" aria-label="Reference"></div>
+            <div class="col-12"><button id="apGo" class="btn btn-sm btn-ink w-100">Save payment</button></div>
+          </div>
+        </div>
+
+        <div id="voidBox" class="d-none mt-3">
+          <hr><span class="label-mono">Void this sale</span>
+          <input id="vReason" class="form-control form-control-sm mt-2" placeholder="Reason (required)" aria-label="Reason">
+          <div id="vRefundRow" class="row g-2 mt-1 d-none">
+            <div class="col-5"><select id="vMethod" class="form-select form-select-sm" aria-label="Refund method"><option value="cash">Refund cash</option><option value="mpesa">Refund M-Pesa</option><option value="card">Refund card</option><option value="bank_transfer">Refund bank</option></select></div>
+            <div class="col-7"><input id="vRef" class="form-control form-control-sm mono" placeholder="Refund reference (optional)" aria-label="Refund reference"></div>
+          </div>
+          <button id="vGo" class="btn btn-sm btn-outline-danger w-100 mt-2">Void sale</button>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between flex-wrap gap-2">
+        <div class="d-flex flex-wrap gap-2">
+          <button id="bPdf" class="btn btn-sm btn-light border"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</button>
+          <button id="bPrint" class="btn btn-sm btn-light border"><i class="bi bi-printer me-1"></i>Print</button>
+          <button id="bWa" class="btn btn-sm btn-light border"><i class="bi bi-whatsapp me-1"></i>Share on WhatsApp</button>
+        </div>
+        <div class="d-flex gap-2">
+          <button id="bPay" class="btn btn-sm btn-light border d-none"><i class="bi bi-cash-coin me-1"></i>Receive payment</button>
+          <button id="bVoid" class="btn btn-sm btn-light border d-none text-danger"><i class="bi bi-x-octagon me-1"></i>Void</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ phone for WhatsApp ============ -->
+<div class="modal fade" id="waModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Send receipt</h5><button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <label class="form-label small mb-1" for="waPhone">Customer WhatsApp number</label>
+      <input id="waPhone" class="form-control form-control-sm mono" inputmode="tel" placeholder="07xx xxx xxx" autocomplete="off">
+      <div class="small text-muted mt-2">On a phone the PDF is attached for you. On a computer the PDF downloads and WhatsApp opens: attach it there.</div>
+      <div id="waErr" class="small text-danger mt-2 d-none"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="waGo" class="btn btn-ink">Send</button></div>
+  </div></div>
+</div>
+
+<!-- ============ manager approval ============ -->
+<div class="modal fade" id="apprModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Manager approval</h5><button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <p class="small text-muted">A manager must approve voiding a sale. Ask them to enter their details.</p>
+      <input id="apprUser" class="form-control form-control-sm mb-2" placeholder="Manager username" autocomplete="off" aria-label="Manager username">
+      <input id="apprPass" type="password" class="form-control form-control-sm" placeholder="Password" autocomplete="off" aria-label="Manager password">
+      <div id="apprErr" class="small text-danger mt-2 d-none"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="apprOk" class="btn btn-ink">Approve</button></div>
+  </div></div>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/receipt.js"></script>
+<script src="js/sales.js"></script>
+</body>
+</html>

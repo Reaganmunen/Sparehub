@@ -25,18 +25,18 @@
       <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
         <h1 class="h3 m-0 fw-semibold" id="hello">Welcome back</h1>
         <div class="d-flex gap-2">
-          <select id="range" class="form-select form-select-sm pill-select" aria-label="Period">
+          <select id="range" data-staff class="form-select form-select-sm pill-select" aria-label="Period">
             <option value="7" selected>Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option>
           </select>
-          <button id="exportBtn" class="btn btn-ink btn-sm px-3"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export Excel</button>
+          <button id="exportBtn" data-staff class="btn btn-ink btn-sm px-3"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Export Excel</button>
         </div>
       </div>
 
       <div id="notice" class="d-none"></div>
 
-      <section class="row g-3" id="kpis"></section>
+      <section class="row g-3" id="kpis" data-staff></section>
 
-      <section class="row g-3">
+      <section class="row g-3" data-staff>
         <div class="col-xl-8">
           <div class="panel h-100">
             <div class="panel-h"><span class="label-mono">Sales trend</span><span class="legend" id="legend"></span></div>
@@ -60,16 +60,16 @@
       </section>
 
       <section class="row g-3">
-        <div class="col-xl-8">
+        <div class="col-xl-8" id="salesCol">
           <div class="panel">
-            <div class="panel-h"><span class="label-mono">Recent sales</span>
+            <div class="panel-h"><span class="label-mono" id="salesTitle">Recent sales</span>
               <span class="d-flex gap-2"><input id="txSearch" class="form-control form-control-sm tx-search" placeholder="Search sales" aria-label="Search sales"><a class="btn btn-sm btn-light border" href="pos.html"><i class="bi bi-plus-lg me-1"></i>New sale</a></span></div>
             <div class="table-responsive panel-b p-0"><table class="table align-middle mb-0 tx">
-              <thead><tr><th>Receipt</th><th>Customer</th><th>Shop</th><th>Cashier</th><th class="text-end">Total</th><th>Status</th></tr></thead>
+              <thead><tr><th>Receipt</th><th>Customer</th><th>Shop</th><th data-staff>Cashier</th><th class="text-end">Total</th><th>Status</th></tr></thead>
               <tbody id="txBody"><tr><td colspan="6" class="text-center text-muted py-4">Loading sales</td></tr></tbody></table></div>
           </div>
         </div>
-        <div class="col-xl-4">
+        <div class="col-xl-4" data-staff>
           <div class="panel h-100">
             <div class="panel-h"><span class="label-mono">Low stock</span><span class="pill-count" id="lowCount">0</span></div>
             <div class="panel-b" id="lowList"></div>

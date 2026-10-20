@@ -18,6 +18,11 @@ async function load(req, saleId) {
   return sale;
 }
 
+/** A cashier may only look at sales they made themselves (managers and the owner see the whole shop). */
+function ownSaleOnly(req, sale) {
+  if (req.user.role === 'cashier' && sale.cashier_id !== req.user.id) throw new AppError('That sale was made by another cashier', 403, 'NOT_YOUR_SALE');
+}
+
 /** A cashier can only work on carts they started themselves. */
 function ownsCart(req, sale) {
   if (sale.status === 'held' && req.user.role === 'cashier' && sale.cashier_id !== req.user.id) {
@@ -207,7 +212,9 @@ module.exports = handlers({
   },
 
   get: async (req, res) => {
-    res.json({ data: await load(req, id(req.params.id)) });
+    const sale = await load(req, id(req.params.id));
+    ownSaleOnly(req, sale);
+    res.json({ data: sale });
   },
 
   /** GET /sales  ?branch_id &status (default completed; 'all' for everything) &payment_status &customer_id &cashier_id &mine=true &q &from &to &page &limit */
@@ -215,7 +222,7 @@ module.exports = handlers({
     const q = req.query;
     res.json(await Sale.list({
       branchId: scopeBranch(req, q.branch_id),
-      cashierId: q.mine === 'true' ? req.user.id : q.cashier_id,
+      cashierId: req.user.role === 'cashier' || q.mine === 'true' ? req.user.id : q.cashier_id, // cashiers: always their own
       customerId: q.customer_id,
       status: q.status === 'all' ? undefined : q.status || 'completed',
       paymentStatus: q.payment_status, q: q.q, from: q.from, to: q.to, page: q.page, limit: q.limit,
@@ -225,6 +232,7 @@ module.exports = handlers({
   /** GET /sales/:id/receipt  ?phone=  -> receipt data for printing + plain text + a WhatsApp share link */
   receipt: async (req, res) => {
     const sale = await load(req, id(req.params.id));
+    ownSaleOnly(req, sale);
     if (sale.status === 'held') throw new AppError('This sale is not finished yet', 409);
     const receipt = await Sale.receipt(sale.id);
     res.json({ data: { receipt, text: Sale.receiptText(receipt), whatsapp_link: Sale.whatsappLink(receipt, req.query.phone) } });

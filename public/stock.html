@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/products.css" rel="stylesheet">
+<link href="css/pos.css" rel="stylesheet">
+</head>
+<body class="app-body">
+<div class="app">
+  <aside id="sidebar" class="side offcanvas-lg offcanvas-start" tabindex="-1"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
+      <div class="crumb">Main menu <i class="bi bi-chevron-right small"></i> <b>Stock</b></div>
+    </header>
+
+    <div class="page">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <h1 class="h3 m-0 fw-semibold">Stock</h1>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <div class="btn-group btn-group-sm" id="tabs" role="group" aria-label="Stock view">
+            <input type="radio" class="btn-check" name="tab" id="tab-levels" value="levels" checked><label class="btn btn-outline-dark" for="tab-levels">Stock levels</label>
+            <input type="radio" class="btn-check" name="tab" id="tab-moves" value="moves" data-staff><label class="btn btn-outline-dark" for="tab-moves" data-staff>Movements</label>
+          </div>
+          <button id="listBtn" class="btn btn-light border btn-sm d-none"><i class="bi bi-plus-lg me-1"></i>List product in a shop</button>
+        </div>
+      </div>
+      <div id="notice"></div>
+
+      <!-- ============ levels ============ -->
+      <div class="panel" id="levelsPanel">
+        <div class="panel-h flex-wrap">
+          <span class="label-mono">Quantities <span id="lvTotal"></span></span>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <input id="lvSearch" class="form-control form-control-sm tx-search" style="width:200px" placeholder="Name, SKU, part no, barcode" aria-label="Search stock">
+            <select id="lvCat" class="form-select form-select-sm pill-select" aria-label="Category"></select>
+            <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
+              <input class="form-check-input ms-0" type="checkbox" id="lvLow" role="switch"><label for="lvLow" class="small">Low stock only</label>
+            </div>
+          </div>
+        </div>
+        <div class="table-responsive panel-b p-0"><table class="table align-middle mb-0 tx"><thead id="lvHead"></thead><tbody id="lvBody"></tbody></table></div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+          <small class="text-muted mono" id="lvInfo"></small>
+          <div class="btn-group btn-group-sm"><button class="btn btn-light border" id="lvPrev" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button><button class="btn btn-light border" id="lvNext" aria-label="Next page"><i class="bi bi-chevron-right"></i></button></div>
+        </div>
+      </div>
+
+      <!-- ============ movements (managers and owner) ============ -->
+      <div class="panel d-none" id="movesPanel">
+        <div class="panel-h flex-wrap">
+          <span class="label-mono">History <span id="mvTotal"></span></span>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <span id="mvProduct" class="chip d-none"></span>
+            <select id="mvType" class="form-select form-select-sm pill-select" aria-label="Type">
+              <option value="">All changes</option><option value="opening_stock">Opening stock</option><option value="adjustment_in">Added</option>
+              <option value="adjustment_out">Removed</option><option value="damage">Damaged</option><option value="supplier_return">Returned to supplier</option>
+            </select>
+            <input id="mvFrom" type="date" class="form-control form-control-sm pill-select" style="min-width:0;width:140px" aria-label="From date">
+            <input id="mvTo" type="date" class="form-control form-control-sm pill-select" style="min-width:0;width:140px" aria-label="To date">
+          </div>
+        </div>
+        <div class="table-responsive panel-b p-0"><table class="table align-middle mb-0 tx">
+          <thead><tr><th>When</th><th>Shop</th><th>Product</th><th>Type</th><th class="text-end">Change</th><th class="text-end">Now</th><th>Reason</th><th>By</th></tr></thead>
+          <tbody id="mvBody"></tbody></table></div>
+        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+          <small class="text-muted mono" id="mvInfo"></small>
+          <div class="btn-group btn-group-sm"><button class="btn btn-light border" id="mvPrev" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button><button class="btn btn-light border" id="mvNext" aria-label="Next page"><i class="bi bi-chevron-right"></i></button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ adjust stock ============ -->
+<div class="modal fade" id="adjModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0">Change stock</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="adjErr" class="alert-x d-none mb-3"></div>
+      <div class="mb-3"><b id="adjName"></b><div class="small text-muted" id="adjWhere"></div></div>
+      <div class="row g-3">
+        <div class="col-6"><label class="form-label" for="adjType">What happened</label><select id="adjType" class="form-select"></select></div>
+        <div class="col-6"><label class="form-label" for="adjQty">Quantity</label><input id="adjQty" type="number" min="0" step="any" class="form-control mono"></div>
+        <div class="col-6 d-none" id="adjCostRow"><label class="form-label" for="adjCost">Cost each (KES)</label><input id="adjCost" type="number" min="0" step="0.01" class="form-control mono"></div>
+        <div class="col-12"><label class="form-label" for="adjReason">Reason</label><input id="adjReason" class="form-control" placeholder="e.g. Recount found 3 extra, dropped and broken" autocomplete="off"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="adjGo" class="btn btn-ink px-4">Save change</button></div>
+  </div></div>
+</div>
+
+<!-- ============ shop settings for a product ============ -->
+<div class="modal fade" id="setModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0">Shop settings</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="setErr" class="alert-x d-none mb-3"></div>
+      <div class="mb-3"><b id="setName"></b><div class="small text-muted" id="setWhere"></div></div>
+      <div class="row g-3">
+        <div class="col-6"><label class="form-label" for="setReorder">Reorder level</label><input id="setReorder" type="number" min="0" step="1" class="form-control mono"></div>
+        <div class="col-6"><label class="form-label" for="setShelf">Shelf / bin</label><input id="setShelf" class="form-control" autocomplete="off"></div>
+        <div class="col-12 owner-only"><span class="label-mono">Prices for this shop only (empty = use the product price)</span></div>
+        <div class="col-4 owner-only"><label class="form-label" for="setSell">Selling</label><input id="setSell" type="number" min="0" step="0.01" class="form-control mono"></div>
+        <div class="col-4 owner-only"><label class="form-label" for="setMin">Minimum</label><input id="setMin" type="number" min="0" step="0.01" class="form-control mono"></div>
+        <div class="col-4 owner-only"><label class="form-label" for="setWhole">Wholesale</label><input id="setWhole" type="number" min="0" step="0.01" class="form-control mono"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="setGo" class="btn btn-ink px-4">Save</button></div>
+  </div></div>
+</div>
+
+<!-- ============ list a product in a shop (owner) ============ -->
+<div class="modal fade" id="lstModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0">List a product in a shop</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="lstErr" class="alert-x d-none mb-3"></div>
+      <label class="form-label" for="lstShop">Shop</label><select id="lstShop" class="form-select mb-3"></select>
+      <label class="form-label" for="lstQ">Find the product</label><input id="lstQ" class="form-control mb-2" placeholder="Name, SKU, part no" autocomplete="off">
+      <div id="lstRes" class="small"></div>
+      <div class="small text-muted mt-2">The product shows in that shop's till with zero stock. Add quantities with <b>Change stock</b>.</div>
+    </div>
+  </div></div>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/stock.js"></script>
+</body>
+</html>

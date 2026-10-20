@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suppliers | Spare Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="css/app.css" rel="stylesheet">
+<link href="css/dashboard.css" rel="stylesheet">
+<link href="css/products.css" rel="stylesheet">
+<link href="css/pos.css" rel="stylesheet">
+</head>
+<body class="app-body">
+<div class="app">
+  <aside id="sidebar" class="side offcanvas-lg offcanvas-start" tabindex="-1"></aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-sm d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Open menu"><i class="bi bi-list fs-4"></i></button>
+      <div class="crumb">People & suppliers <i class="bi bi-chevron-right small"></i> <b>Suppliers</b></div>
+    </header>
+
+    <div class="page">
+      <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <h1 class="h3 m-0 fw-semibold">Suppliers</h1>
+        <button id="addBtn" class="btn btn-ink btn-sm px-3"><i class="bi bi-plus-lg me-1"></i>Add supplier</button>
+      </div>
+      <div id="notice"></div>
+      <section class="row g-3" id="kpis"></section>
+
+      <div class="panel">
+        <div class="panel-h flex-wrap">
+          <span class="label-mono">Suppliers <span id="total"></span></span>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <input id="fSearch" class="form-control form-control-sm tx-search" style="width:200px" placeholder="Name, contact or phone" aria-label="Search suppliers">
+            <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
+              <input class="form-check-input ms-0" type="checkbox" id="fOwed" role="switch"><label for="fOwed" class="small">We owe only</label>
+            </div>
+          </div>
+        </div>
+        <div class="table-responsive panel-b p-0"><table class="table align-middle mb-0 tx">
+          <thead><tr><th>Supplier</th><th>Phone</th><th>Terms</th><th class="text-end">We owe</th><th>Oldest due</th><th></th></tr></thead>
+          <tbody id="tbody"></tbody></table></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ add / edit ============ -->
+<div class="modal fade" id="sModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="sTitle">Add supplier</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="sErr" class="alert-x d-none mb-3"></div>
+      <div class="row g-3">
+        <div class="col-12"><label class="form-label" for="sName">Supplier name *</label><input id="sName" class="form-control" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="sContact">Contact person</label><input id="sContact" class="form-control" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="sPhone">Phone</label><input id="sPhone" class="form-control mono" inputmode="tel" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="sEmail">Email</label><input id="sEmail" type="email" class="form-control" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="sTerms">Payment terms (days)</label><input id="sTerms" type="number" min="0" step="1" class="form-control mono" placeholder="0 = pay on delivery"></div>
+        <div class="col-6"><label class="form-label" for="sPin">KRA PIN</label><input id="sPin" class="form-control mono" autocomplete="off"></div>
+        <div class="col-6"><label class="form-label" for="sAddr">Address</label><input id="sAddr" class="form-control" autocomplete="off"></div>
+        <div class="col-12"><label class="form-label" for="sNotes">Notes</label><input id="sNotes" class="form-control" autocomplete="off"></div>
+        <div class="col-12 d-none" id="sActiveBox"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="sActive" checked><label class="form-check-label" for="sActive">Active supplier</label></div></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="sSave" class="btn btn-ink px-4">Save</button></div>
+  </div></div>
+</div>
+
+<!-- ============ pay a supplier ============ -->
+<div class="modal fade" id="pModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0">Pay supplier</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="pErr" class="alert-x d-none mb-3"></div>
+      <div class="d-flex justify-content-between align-items-baseline mb-3"><b id="pName"></b><span class="mono">we owe <b id="pOwes"></b></span></div>
+      <div class="row g-3">
+        <div class="col-12"><label class="form-label" for="pPurchase">Pay towards</label><select id="pPurchase" class="form-select"></select></div>
+        <div class="col-6"><label class="form-label" for="pMethod">Method</label>
+          <select id="pMethod" class="form-select"><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="bank_transfer">Bank transfer</option><option value="card">Card</option></select></div>
+        <div class="col-6"><label class="form-label" for="pAmount">Amount (KES)</label><input id="pAmount" type="number" min="0" step="1" class="form-control mono"></div>
+        <div class="col-12"><input id="pRef" class="form-control mono" placeholder="Reference / M-Pesa code (optional)" aria-label="Reference" autocomplete="off"></div>
+        <div class="col-12 d-none" id="pShopBox"><label class="form-label" for="pShop">Paid from shop</label><select id="pShop" class="form-select"></select></div>
+        <div class="col-12"><input id="pNotes" class="form-control" placeholder="Note (optional)" aria-label="Note"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-light border" data-bs-dismiss="modal">Cancel</button><button id="pGo" class="btn btn-ink px-4">Save payment</button></div>
+  </div></div>
+</div>
+
+<!-- ============ statement ============ -->
+<div class="modal fade" id="stModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content pm">
+    <div class="modal-header"><h2 class="modal-title h5 m-0" id="stTitle">Statement</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div id="stErr" class="alert-x d-none mb-3"></div>
+      <div id="stHead" class="d-flex flex-wrap justify-content-between gap-2 mb-3"></div>
+      <span class="label-mono">Purchases</span>
+      <div class="table-responsive mb-4"><table class="table table-sm align-middle tx mb-0"><thead><tr><th>No.</th><th>Date</th><th>Status</th><th class="text-end">Total</th><th class="text-end">Paid</th><th class="text-end">Owing</th></tr></thead><tbody id="stPurchases"></tbody></table></div>
+      <span class="label-mono">Payments</span>
+      <div id="stPays" class="mt-1"></div>
+      <div id="stVoid" class="d-none mt-3"><hr><span class="label-mono">Void this payment (owner)</span>
+        <div class="d-flex gap-2 mt-2"><input id="svReason" class="form-control form-control-sm" placeholder="Reason" aria-label="Reason"><button id="svGo" class="btn btn-sm btn-outline-danger flex-none">Void</button></div></div>
+    </div>
+  </div></div>
+</div>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/suppliers.js"></script>
+</body>
+</html>
