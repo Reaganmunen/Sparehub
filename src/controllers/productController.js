@@ -53,11 +53,23 @@ module.exports = handlers({
     res.json({ data: product });
   },
 
-  /** POST /products (owner)  product fields + fitments:[vehicle_model_id] + branch_ids:[1,2] + opening_stock:[{branch_id,quantity,unit_cost}] */
+  /**
+   * POST /products (owner or manager)  product fields + fitments:[vehicle_model_id] + branch_ids:[1,2] + opening_stock:[{branch_id,quantity,unit_cost}]
+   * A manager can only add a product to THEIR OWN shop: branch_ids and opening_stock are forced to that shop,
+   * and the buying price is ignored unless the owner allowed them to see costs.
+   */
   create: async (req, res) => {
-    need(req, 'owner');
-    const product = await Product.create(pick(req.body, [...FIELDS, ...EXTRAS]), ctx(req));
-    await audit(req, 'product.create', 'product', product.id, { sku: product.sku, name: product.name, selling_price: product.selling_price });
+    need(req, 'owner', 'manager');
+    const data = pick(req.body, [...FIELDS, ...EXTRAS]);
+    if (!isOwner(req.user)) {
+      const branchId = Number(req.user.branch_id);
+      if (!branchId) throw new AppError('Your account is not linked to a shop. Ask the owner to fix this.', 403, 'NO_BRANCH');
+      data.branch_ids = [branchId];
+      data.opening_stock = (Array.isArray(data.opening_stock) ? data.opening_stock : []).map((os) => ({ ...os, branch_id: branchId }));
+      if (!canSeeCosts(req.user)) delete data.buying_price;
+    }
+    const product = await Product.create(data, ctx(req));
+    await audit(req, 'product.create', 'product', product.id, { sku: product.sku, name: product.name, selling_price: product.selling_price }, isOwner(req.user) ? undefined : req.user.branch_id);
     res.status(201).json({ data: product });
   },
 

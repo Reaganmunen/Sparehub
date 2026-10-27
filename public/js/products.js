@@ -13,10 +13,12 @@ const num = (id) => ($(id).value === '' ? undefined : Number($(id).value));
 const COLS = 6 + (seeCosts ? 2 : 0) + 1; // sku, product, category, brand, selling, status, actions (+ buying, min)
 
 // ---------- page header ----------
+const canAdd = owner || me.role === 'manager'; // managers add products to their own shop only
 $('actions').innerHTML = owner
   ? `<button class="btn btn-light border btn-sm" id="importBtn"><i class="bi bi-file-earmark-arrow-up me-1"></i>Import</button>
      <button class="btn btn-ink btn-sm px-3" id="addBtn"><i class="bi bi-plus-lg me-1"></i>Add product</button>`
-  : '<span class="label-mono">View only. The owner manages products.</span>';
+  : `<span class="label-mono me-2">Only the owner can edit products.</span>
+     <button class="btn btn-ink btn-sm px-3" id="addBtn"><i class="bi bi-plus-lg me-1"></i>Add product</button>`;
 $('thead').innerHTML = `<tr><th>SKU</th><th>Product</th><th>Category</th><th>Brand</th>${seeCosts ? '<th class="text-end">Buying</th>' : ''}<th class="text-end">Selling</th>${seeCosts ? '<th class="text-end">Min</th>' : ''}<th>Status</th><th></th></tr>`;
 document.querySelectorAll('.cost-only').forEach((el) => el.classList.toggle('d-none', !seeCosts));
 
@@ -133,8 +135,10 @@ function setReadOnly(ro) {
   $('pmSave').classList.toggle('d-none', ro); $('addCat').disabled = ro; $('addBrand').disabled = ro; $('fitNew').classList.toggle('d-none', ro);
 }
 function renderShopRows() {
-  $('shopRows').innerHTML = state.branches.map((b) => `<div class="shop-row" data-branch="${b.id}">
-    <div class="form-check"><input class="form-check-input sr-on" type="checkbox" id="sr_${b.id}" checked><label class="form-check-label" for="sr_${b.id}">${esc(b.name)}</label></div>
+  // a manager only sees (and can only add to) their own shop
+  const shops = owner ? state.branches : state.branches.filter((b) => b.id === Number(me.branch_id));
+  $('shopRows').innerHTML = shops.map((b) => `<div class="shop-row" data-branch="${b.id}">
+    <div class="form-check"><input class="form-check-input sr-on" type="checkbox" id="sr_${b.id}" checked ${owner ? '' : 'disabled'}><label class="form-check-label" for="sr_${b.id}">${esc(b.name)}</label></div>
     <input type="number" min="0" step="1" class="form-control sr-qty" placeholder="Qty in stock" aria-label="Opening quantity at ${esc(b.name)}">
     <input type="number" min="0" step="0.01" class="form-control sr-cost" placeholder="Cost each (default buying)" aria-label="Unit cost at ${esc(b.name)}"></div>`).join('');
 }
@@ -238,8 +242,8 @@ async function runImport() {
   } catch (e) { showErr('imError', e.message); } finally { btn.disabled = false; }
 }
 
+if (canAdd) $('addBtn').onclick = openNew;
 if (owner) {
-  $('addBtn').onclick = openNew;
   $('importBtn').onclick = () => { $('imFile').value = ''; $('imResult').innerHTML = ''; showErr('imError', ''); modal('importModal').show(); };
   $('tplBtn').onclick = downloadTemplate;
   $('imGo').onclick = runImport;

@@ -19,7 +19,7 @@ router.post('/import', owner, upload.spreadsheet, product.importFile);
 
 // ---- catalogue ----
 router.get('/', staff, product.list);
-router.post('/', owner, product.create);
+router.post('/', staff, product.create); // managers: controller forces their own shop
 router.get('/:id/price-history', product.priceHistory); // controller checks "can view costs"
 router.post('/:id/active', owner, product.setActive);
 router.get('/:id', staff, product.get);

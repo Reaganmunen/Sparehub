@@ -10,7 +10,7 @@ const { notFound, errorHandler } = require('./middleware');
 
 const app = express();
 
-// Behind Render / a proxy: makes req.ip (rate limits, audit log) the real client address.
+// Behind Vercel / Render / a proxy: makes req.ip (rate limits, audit log) the real client address.
 app.set('trust proxy', 1);
 
 app.use(helmet({ contentSecurityPolicy: false })); // CSP off so the plain HTML frontend can use inline scripts / CDN files
