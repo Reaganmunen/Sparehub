@@ -16,13 +16,23 @@ types.setTypeParser(1082, (v) => v); // DATE
 //   DATABASE_URL=postgres://user:password@localhost:5432/spareparts_pos
 // or the separate values below.
 // ---------------------------------------------------------------------------------
+// On Vercel every function instance opens its own pool, so keep it small (Neon's pooler handles the rest).
+const onVercel = Boolean(process.env.VERCEL);
+const poolSettings = {
+  max: Number(process.env.DB_POOL_MAX) || (onVercel ? 3 : 10),
+  idleTimeoutMillis: 10000, // give connections back quickly when the function goes quiet
+  connectionTimeoutMillis: 10000, // fail with an error instead of hanging if the database cannot be reached
+};
+
 const pool = new Pool(
   process.env.DATABASE_URL
     ? {
+        ...poolSettings,
         connectionString: process.env.DATABASE_URL,
-        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined, // sslmode=require in the URL also works
       }
     : {
+        ...poolSettings,
         host: process.env.DB_HOST || 'localhost',
         port: Number(process.env.DB_PORT) || 5433,
         user: process.env.DB_USER || 'postgres',

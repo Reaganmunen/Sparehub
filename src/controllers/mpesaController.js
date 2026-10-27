@@ -35,6 +35,7 @@ module.exports = {
       }
       await requireOpenShift(req, sale.branch_id);
 
+      await MpesaTransaction.expireStale(3).catch((err) => console.error('[mpesa] expire failed:', err.message));
       const due = dueOf(sale);
       if (due <= 0.004) throw new AppError('There is nothing left to pay on this sale', 409);
       const amount = b.amount === undefined || b.amount === '' ? due : Number(b.amount);
@@ -73,6 +74,8 @@ module.exports = {
      * Done when a transaction has status 'success' (or the sale is completed / fully paid).
      */
     status: async (req, res) => {
+      // Vercel has no background timer, so unanswered prompts are expired here, while the till is polling.
+      await MpesaTransaction.expireStale(3).catch((err) => console.error('[mpesa] expire failed:', err.message));
       const sale = await Sale.findById(id(req.params.saleId, 'saleId'));
       if (!sale) throw new AppError('Sale not found', 404);
       assertBranch(req, sale.branch_id);
@@ -117,7 +120,7 @@ module.exports = {
     res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
   },
 
-  /** Call once from server.js: prompts nobody answered are marked as timed out every minute. */
+  /** Call once from server.js (local / always-on hosting only; on Vercel the status and stk-push calls expire stale prompts instead). */
   startExpiryJob(minutes = 3) {
     const timer = setInterval(() => {
       MpesaTransaction.expireStale(minutes).catch((err) => console.error('[mpesa] expire job failed:', err.message));
