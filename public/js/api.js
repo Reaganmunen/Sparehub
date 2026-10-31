@@ -8,16 +8,23 @@ const Auth = {
 };
 
 async function api(path, { method = 'GET', body, token = Auth.token } = {}) {
+  if (window.Offline && Offline.isDown()) throw Object.assign(new Error('Cannot reach the server. Check your internet connection.'), { code: 'NETWORK' });
   let res;
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 30000); // a hanging connection counts as "no internet"
   try {
     res = await fetch(API_BASE + path, {
       method,
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: body ? JSON.stringify(body) : undefined,
+      signal: ctl.signal,
     });
   } catch {
+    if (window.Offline) Offline.markDown();
     throw Object.assign(new Error('Cannot reach the server. Check your internet connection.'), { code: 'NETWORK' });
+  } finally {
+    clearTimeout(timer);
   }
+  if (window.Offline) Offline.markUp();
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const e = data.error || {};

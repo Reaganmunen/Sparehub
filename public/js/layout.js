@@ -29,7 +29,16 @@ function renderShell({ active, branches = [], branchId = '', onBranch, allowAll 
       `<a class="nav-i ${k === active ? 'active' : ''}" href="${href}"><i class="bi ${ic}"></i>${t}</a>`).join('')}</div>`).join('')}
     <div class="me"><span class="av">${esc((u.full_name || '?')[0])}</span><div><b>${esc(u.full_name)}</b><small>${esc(u.role)}</small></div>
       <button id="signOut" title="Sign out" aria-label="Sign out"><i class="bi bi-box-arrow-right"></i></button></div></div>`;
-  document.getElementById('signOut').onclick = () => { Auth.clear(); location.href = 'login.html'; };
+  document.getElementById('signOut').onclick = () => {
+    if (window.Offline) {
+      const n = Offline.pendingCount();
+      if (Offline.isDown() && !confirm('There is no internet right now. If you sign out you cannot sign in again until it is back. Sign out anyway?')) return;
+      if (n && !confirm(`${n} offline sale${n === 1 ? ' is' : 's are'} still waiting to be sent. They stay on this computer and go through when someone signs in with internet. Sign out anyway?`)) return;
+    }
+    Auth.clear(); location.href = 'login.html';
+  };
   const sel = document.getElementById('shopSelect');
   if (onBranch) sel.onchange = () => onBranch(sel.value);
+  // offline support (the POS page loads this file itself; every other page gets it here)
+  if (!window.Offline && !document.getElementById('offlineJs')) { const s = document.createElement('script'); s.id = 'offlineJs'; s.src = 'js/offline.js'; document.head.appendChild(s); }
 }

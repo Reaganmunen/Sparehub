@@ -39,3 +39,5 @@ coverage/
 *.sql.bak
 *.dump
 *.backup
+scripts/production-users.json
+scripts/production-credentials.txt

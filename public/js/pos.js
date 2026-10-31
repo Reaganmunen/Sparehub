@@ -11,7 +11,8 @@ const qs = (o) => { const p = new URLSearchParams(); Object.entries(o).forEach((
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const r2 = (n) => Math.round(n * 100) / 100;
 const modal = (id) => bootstrap.Modal.getOrCreateInstance($(id));
-const shiftRequired = () => isCashier && state.settings.require_open_shift !== false;
+const shiftRequired = () => isCashier && state.settings.require_open_shift !== false && !Offline.isDown();
+const branchCode = () => (state.branches.find((b) => String(b.id) === String(state.branchId)) || {}).code || 'XX';
 const allowNegative = () => state.settings.allow_negative_stock === true;
 
 function toast(msg, err) {
@@ -52,7 +53,7 @@ $('lines').addEventListener('click', (e) => {
 $('lines').addEventListener('change', (e) => {
   const d = e.target.dataset;
   if (d.qty !== undefined) setQty(+d.qty, num(e.target.value));
-  if (d.price !== undefined) { const l = state.cart[+d.price], v = e.target.value.trim(); if (v === '' || num(v) < 0) l.custom = false; else { l.custom = true; l.price = num(v); } }
+  if (d.price !== undefined) { const l = state.cart[+d.price], v = e.target.value.trim(); if (Offline.isDown() && isCashier) { l.custom = false; toast('Prices cannot be changed while there is no internet', true); } else if (v === '' || num(v) < 0) l.custom = false; else { l.custom = true; l.price = num(v); } }
   renderCart();
 });
 function setQty(i, q) {
@@ -89,11 +90,23 @@ let searchSeq = 0;
 async function loadProducts() {
   if (!state.branchId) { $('grid').innerHTML = '<div class="empty" style="grid-column:1/-1">Choose a shop (top of the sidebar) to start selling.</div>'; return; }
   const seq = ++searchSeq;
+  const f = { q: $('q').value.trim(), category_id: $('cat').value, in_stock: $('inStock').checked ? 'true' : '', limit: 60 };
   try {
-    const r = await api('/products/pos' + qs({ branch_id: state.branchId, q: $('q').value.trim(), category_id: $('cat').value, in_stock: $('inStock').checked ? 'true' : '', limit: 60 }));
+    if (Offline.isDown()) throw Object.assign(new Error('No internet'), { code: 'NETWORK' });
+    const r = await api('/products/pos' + qs({ branch_id: state.branchId, ...f }));
     if (seq !== searchSeq) return;
     state.products = r.data || []; renderProducts();
-  } catch (e) { $('grid').innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(e.message)}</div>`; }
+    Offline.cacheCatalog(state.branchId).catch(() => {}); // keep a copy on this computer for when the internet drops
+  } catch (e) {
+    if (e.code === 'NETWORK') {
+      const rows = await Offline.searchCatalog(state.branchId, { ...f, in_stock: f.in_stock === 'true' });
+      if (seq !== searchSeq) return;
+      if (rows) { state.products = rows; renderProducts(); return; }
+      $('grid').innerHTML = '<div class="empty" style="grid-column:1/-1">No internet, and this computer has no saved product list yet. Connect to the internet once and open this page to download it.</div>';
+      return;
+    }
+    $('grid').innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(e.message)}</div>`;
+  }
 }
 let qt; $('q').oninput = () => { clearTimeout(qt); qt = setTimeout(loadProducts, 250); };
 $('cat').onchange = loadProducts; $('inStock').onchange = loadProducts;
@@ -101,9 +114,15 @@ $('q').addEventListener('keydown', async (e) => {
   if (e.key !== 'Enter') return; e.preventDefault();
   const code = $('q').value.trim(); if (!code || !state.branchId) return;
   clearTimeout(qt);
-  try { addProduct((await api(`/products/pos/scan/${encodeURIComponent(code)}` + qs({ branch_id: state.branchId }))).data); $('q').value = ''; loadProducts(); }
+  try {
+    if (Offline.isDown()) throw Object.assign(new Error('No internet'), { code: 'NETWORK' });
+    addProduct((await api(`/products/pos/scan/${encodeURIComponent(code)}` + qs({ branch_id: state.branchId }))).data); $('q').value = ''; loadProducts();
+  }
   catch (err) {
-    if (err.status !== 404) return toast(err.message, true);
+    if (err.code === 'NETWORK') {
+      const p = await Offline.findByCode(state.branchId, code);
+      if (p) { addProduct(p); $('q').value = ''; loadProducts(); return; }
+    } else if (err.status !== 404) return toast(err.message, true);
     await loadProducts();
     if (state.products.length === 1) { addProduct(state.products[0]); $('q').value = ''; loadProducts(); } else toast('Pick the item from the list', false);
   }
@@ -239,9 +258,18 @@ function renderShift() {
   chip.innerHTML = s ? `<button class="chip" id="shiftBtn">Shift open since ${new Date(s.opened_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} · Close</button>`
     : `<button class="chip off" id="shiftBtn">No open shift · Open</button>`;
   $('shiftBtn').onclick = openShiftModal;
-  notice(!s && shiftRequired() ? 'Open your shift before you sell. Use the red button at the top.' : '');
+  refreshNotice();
 }
-async function loadShift() { if (!isCashier) return; try { state.shift = (await api('/shifts/current')).data; } catch { state.shift = null; } renderShift(); }
+function refreshNotice() {
+  if (Offline.isDown()) return notice('<b>No internet.</b> You can keep selling. Sales are saved on this computer and sent to the system when the internet is back.');
+  notice(isCashier && !state.shift && shiftRequired() ? 'Open your shift before you sell. Use the red button at the top.' : '');
+}
+async function loadShift() {
+  if (!isCashier) return;
+  try { state.shift = (await api('/shifts/current')).data; Offline.saveMeta('shift', { u: me.id, s: state.shift || null }); }
+  catch (e) { const c = e.code === 'NETWORK' ? await Offline.getMeta('shift') : null; state.shift = c && c.u === me.id ? c.s : null; }
+  renderShift();
+}
 function openShiftModal() {
   const s = state.shift; $('shiftErr').classList.add('d-none');
   $('shiftTitle').textContent = s ? 'Close your shift' : 'Open your shift';
@@ -253,7 +281,7 @@ function openShiftModal() {
 $('shiftOk').onclick = async () => {
   const s = state.shift, err = $('shiftErr'); err.classList.add('d-none');
   try {
-    if (s) { await api(`/shifts/${s.shift_id || s.id}/close`, { method: 'POST', body: { counted_cash: num($('shiftCash').value), notes: $('shiftNotes').value.trim() } }); state.shift = null; toast('Shift closed'); }
+    if (s) { await api(`/shifts/${s.shift_id || s.id}/close`, { method: 'POST', body: { counted_cash: num($('shiftCash').value), notes: $('shiftNotes').value.trim() } }); state.shift = null; Offline.saveMeta('shift', { u: me.id, s: null }); toast('Shift closed'); }
     else { await api('/shifts/open', { method: 'POST', body: { opening_float: num($('shiftCash').value) } }); await loadShift(); toast('Shift opened'); }
     modal('shiftModal').hide(); renderShift();
   } catch (e) { err.textContent = e.message; err.classList.remove('d-none'); }
@@ -282,10 +310,11 @@ function renderPay() {
   const note = $('creditNote'); note.classList.add('d-none');
   let ok = state.lines.length > 0 || false;
   if (credit) {
-    if (state.customer) { note.textContent = `${KES(a.left)} will be put on ${state.customer.name}'s credit account.`; note.classList.remove('d-none'); ok = true; }
+    if (state.sale && state.sale.offline) { note.textContent = 'No internet: take the full amount. Credit sales need internet.'; note.classList.remove('d-none'); ok = false; }
+    else if (state.customer) { note.textContent = `${KES(a.left)} will be put on ${state.customer.name}'s credit account.`; note.classList.remove('d-none'); ok = true; }
     else { note.textContent = 'Add the full amount, or pick a customer on the cart to put the balance on credit.'; note.classList.remove('d-none'); ok = false; }
   }
-  if (!state.lines.length && credit && state.customer) ok = true; // whole sale on credit
+  if (!state.lines.length && credit && state.customer && !(state.sale && state.sale.offline)) ok = true; // whole sale on credit
   $('confirmPay').disabled = !ok || state.busy;
   $('pAmount').value = a.left > 0 ? a.left : '';
 }
@@ -311,8 +340,16 @@ $('payBtn').onclick = () => {
   if (shiftRequired() && !state.shift) return openShiftModal();
   guarded(async () => {
     $('payBtn').disabled = true;
-    try { const id = await saveHeld(); state.sale = (await api('/sales/' + id)).data; } finally { renderCart(); }
-    state.lines = []; payErr(''); $('pMethod').value = 'cash'; $('pRef').value = ''; syncPayForm();
+    try {
+      if (Offline.isDown()) state.sale = offlineSale();
+      else {
+        try { const id = await saveHeld(); state.sale = (await api('/sales/' + id)).data; }
+        catch (e) { if (e.code === 'NETWORK') state.sale = offlineSale(); else throw e; }
+      }
+    } finally { renderCart(); }
+    state.lines = []; payErr(''); $('pMethod').value = 'cash'; $('pRef').value = '';
+    const stk = $('pMethod').querySelector('[value=mpesa_stk]'); if (stk) stk.disabled = !!state.sale.offline; // the prompt needs internet
+    syncPayForm();
     $('payForm').classList.remove('d-none'); $('stkWait').classList.add('d-none'); $('payFoot').classList.remove('d-none');
     renderPay(); modal('payModal').show(); setTimeout(() => $('pAmount').focus(), 300);
   }).catch(() => {});
@@ -324,10 +361,11 @@ async function finishSale(saleId) {
   const wa = $('rcptWa'); wa.classList.toggle('d-none', !r.whatsapp_link); if (r.whatsapp_link) wa.href = r.whatsapp_link;
   modal('payModal').hide(); modal('rcptModal').show();
 }
-$('rcptDone').onclick = () => { resetCart(); loadProducts(); refreshHeldCount(); $('q').focus(); };
+$('rcptDone').onclick = () => { $('rcptNote').classList.add('d-none'); resetCart(); loadProducts(); refreshHeldCount(); $('q').focus(); };
 $('rcptPrint').onclick = () => window.print();
 
 $('confirmPay').onclick = async () => {
+  if (state.sale && state.sale.offline) return confirmOffline();
   payErr(''); state.busy = true; state.stop = false; $('confirmPay').disabled = true; $('payClose').disabled = true;
   const id = state.sale.id, a = applied(), stk = a.lines.find((l) => l.method === 'mpesa_stk');
   try {
@@ -365,7 +403,9 @@ async function runStk(id, l) {
 // ---------- start ----------
 document.addEventListener('keydown', (e) => { if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $('q').focus(); } });
 (async () => {
-  try { state.branches = (await api('/branches')).data || []; } catch { /* sidebar still works */ }
+  await Offline.ping(); // find out first whether the internet is there, so a dead connection does not make the page wait
+  try { state.branches = (await api('/branches')).data || []; Offline.saveMeta('branches', state.branches); }
+  catch { state.branches = (await Offline.getMeta('branches')) || []; }
   if (isOwner && !state.branches.some((b) => String(b.id) === state.branchId)) state.branchId = state.branches[0] ? String(state.branches[0].id) : '';
   const shell = () => renderShell({ active: 'pos', branches: state.branches, branchId: state.branchId, allowAll: false, onBranch });
   function onBranch(v) {
@@ -373,7 +413,49 @@ document.addEventListener('keydown', (e) => { if (e.key === '/' && !/INPUT|TEXTA
     state.branchId = v; localStorage.setItem('spare_pos_branch', v); state.heldId = null; resetCart(); loadProducts(); refreshHeldCount();
   }
   shell();
-  try { const s = (await api('/settings/public')).data || {}; Object.keys(s).forEach((k) => (state.settings[k] = s[k] === true || s[k] === 'true' ? true : s[k] === false || s[k] === 'false' ? false : s[k])); } catch { /* defaults */ }
-  try { const c = await api('/categories'); (c.data || []).forEach((x) => $('cat').insertAdjacentHTML('beforeend', `<option value="${x.id}">${esc(x.name)}</option>`)); } catch { /* filter is optional */ }
-  renderCart(); renderCustomer(); loadShift(); loadProducts(); refreshHeldCount();
+  let s = {}; try { s = (await api('/settings/public')).data || {}; Offline.saveMeta('settings', s); } catch { s = (await Offline.getMeta('settings')) || {}; }
+  Object.keys(s).forEach((k) => (state.settings[k] = s[k] === true || s[k] === 'true' ? true : s[k] === false || s[k] === 'false' ? false : s[k]));
+  let cats = []; try { cats = (await api('/categories')).data || []; Offline.saveMeta('categories', cats); } catch { cats = (await Offline.getMeta('categories')) || []; }
+  cats.forEach((x) => $('cat').insertAdjacentHTML('beforeend', `<option value="${x.id}">${esc(x.name)}</option>`));
+  renderCart(); renderCustomer(); loadShift(); loadProducts(); refreshHeldCount(); refreshNotice();
+  // the connection came or went: update the screen; a batch of offline sales was uploaded: stock changed
+  window.addEventListener('offline:status', () => { refreshNotice(); renderShift(); loadProducts(); if (!Offline.isDown()) { loadShift(); refreshHeldCount(); } });
+  window.addEventListener('offline:synced', () => loadProducts());
 })();
+
+// ---------- selling with no internet ----------
+// The sale is kept on this computer (js/offline.js) and uploaded by itself later. Cash and M-Pesa codes only, paid in full,
+// no customer credit, no M-Pesa prompt, no price changes for cashiers: all of those need the server.
+function offlineSale() {
+  if (!state.cart.length) throw new Error('The cart is empty');
+  if (state.settings.vat_enabled === true) throw new Error('Offline selling is not available while VAT is switched on.');
+  if (isCashier && state.cart.some((l) => l.custom)) throw new Error('A changed price needs a manager to approve it, which needs internet. Put the normal price back to sell now.');
+  return { id: null, offline: true, total: cartTotal(), returned_total: 0, amount_paid: 0 };
+}
+
+async function confirmOffline() {
+  payErr('');
+  const a = applied();
+  if (!a.lines.length || a.left > 0.004) return payErr('No internet: the sale must be paid in full.');
+  state.busy = true; $('confirmPay').disabled = true; $('payClose').disabled = true;
+  try {
+    const now = new Date().toISOString(), ref = await Offline.newRef(branchCode());
+    const rec = {
+      ...ref, user_id: me.id, cashier_id: me.id, branch_id: Number(state.branchId), shift_id: state.shift ? (state.shift.shift_id || state.shift.id) : null,
+      sale_type: state.saleType, customer_id: state.customer ? state.customer.id : null, sold_at: now, created_at: now,
+      notes: $('notes').value.trim() || null, expected_total: state.sale.total,
+      items: state.cart.map((l) => ({ product_id: l.id, name: l.name, quantity: l.qty, unit_price: priceOf(l) })),
+      payments: a.lines.map((l) => ({ method: l.method, amount: l.applied, reference: l.ref || undefined })),
+    };
+    await Offline.enqueue(rec);
+    const branch = state.branches.find((b) => String(b.id) === String(state.branchId)) || {};
+    $('rcptText').textContent = Offline.receiptText({ rec, branch, business: state.settings.business_name, cashier: me.full_name });
+    $('rcptWa').classList.add('d-none');
+    const note = $('rcptNote'); note.textContent = `Saved on this computer as ${rec.label}. It goes onto the system by itself when the internet is back.`; note.classList.remove('d-none');
+    modal('payModal').hide(); modal('rcptModal').show();
+  } catch (e) {
+    payErr('This sale could NOT be saved on the computer. Write it down on paper. ' + e.message);
+  } finally {
+    state.busy = false; $('payClose').disabled = false; if (!$('payForm').classList.contains('d-none')) renderPay();
+  }
+}

@@ -11,6 +11,7 @@ router.use(authenticate);
 
 // ---- cashier screen (fixed paths first) ----
 router.get('/pos', product.posSearch);
+router.get('/pos/all', product.posAll);
 router.get('/pos/scan/:code', product.scan);
 
 // ---- Excel / CSV import ----

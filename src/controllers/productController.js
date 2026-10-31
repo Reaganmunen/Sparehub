@@ -27,6 +27,12 @@ module.exports = handlers({
     res.json({ data: rows });
   },
 
+  /** GET /products/pos/all  ?branch_id   the whole shop catalogue (prices + stock) for offline use at the till */
+  posAll: async (req, res) => {
+    const rows = await Product.allForPos(branchRequired(req, req.query.branch_id), ctx(req));
+    res.json({ data: rows, as_of: new Date().toISOString() });
+  },
+
   /** GET /products/pos/scan/:code  (barcode scanner or exact SKU) */
   scan: async (req, res) => {
     const row = await Product.findForPosByCode(branchRequired(req, req.query.branch_id), req.params.code);

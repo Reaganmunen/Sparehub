@@ -11,7 +11,7 @@ const { normalizePhone } = require('../utils/phone');
  * Turns what the till sends ({ product_id, quantity, optional unit_price / discount_amount / price_override_by })
  * into complete sale lines. Prices, descriptions and tax come from the SERVER, never from the browser.
  */
-async function resolveItems(client, branchId, saleType, items) {
+async function resolveItems(client, branchId, saleType, items, { forceAllowNegative = false } = {}) {
   if (!Array.isArray(items) || !items.length) throw new AppError('Add at least one item to the sale');
 
   const ids = [...new Set(items.map((i) => Number(i.product_id)))];
@@ -21,7 +21,8 @@ async function resolveItems(client, branchId, saleType, items) {
   );
   const byId = new Map(rows.map((p) => [p.product_id, p]));
   const vatOn = await Setting.getBool('vat_enabled', false, { client });
-  const allowNegative = await Setting.getBool('allow_negative_stock', false, { client });
+  // forceAllowNegative: a sale that already happened offline must be recorded even if the stock count has since moved
+  const allowNegative = forceAllowNegative || (await Setting.getBool('allow_negative_stock', false, { client }));
 
   const wanted = new Map();
   const lines = items.map((it) => {
@@ -90,7 +91,7 @@ class Sale {
     if (!data.branch_id || !data.cashier_id) throw new AppError('branch_id and cashier_id are required');
     const saleType = data.sale_type || 'retail';
     return db.inTransaction(opts, async (client) => {
-      const lines = await resolveItems(client, data.branch_id, saleType, data.items);
+      const lines = await resolveItems(client, data.branch_id, saleType, data.items, { forceAllowNegative: Boolean(data.force_allow_negative) });
       const { rows } = await client.query(
         `INSERT INTO sales (branch_id, customer_id, cashier_id, shift_id, sale_type, due_date, notes)
          VALUES ($1, $2, $3,
@@ -134,12 +135,12 @@ class Sale {
     return true;
   }
 
-  /** held -> completed. Deducts the stock and fixes the cost of each item. */
+  /** held -> completed. Deducts the stock and fixes the cost of each item. opts.soldAt (offline sales) = when it really happened. */
   static async complete(id, opts = {}) {
     return db.inTransaction(opts, async (client) => {
       const { rowCount } = await client.query(
-        "UPDATE sales SET status = 'completed', sold_at = now() WHERE id = $1 AND status = 'held'",
-        [id]
+        "UPDATE sales SET status = 'completed', sold_at = COALESCE($2::timestamptz, now()) WHERE id = $1 AND status = 'held'",
+        [id, opts.soldAt || null]
       );
       if (!rowCount) throw new AppError('Only a held sale can be completed (it may already be completed or voided)', 409);
       return Sale.findById(id, { client });
@@ -168,7 +169,7 @@ class Sale {
         await client.query(`UPDATE sales SET due_date = COALESCE(due_date, ${db.TODAY} + 7) WHERE id = $1`, [sale.id]);
       }
 
-      await Sale.complete(sale.id, { client });
+      await Sale.complete(sale.id, { client, soldAt: data.sold_at });
       for (const p of payments) {
         await Payment.record(
           {
@@ -179,6 +180,8 @@ class Sale {
             amount: p.amount,
             reference: p.reference,
             received_by: data.cashier_id,
+            shift_id: data.shift_id || sale.shift_id || null,
+            paid_at: p.paid_at || data.sold_at || null,
           },
           { client }
         );

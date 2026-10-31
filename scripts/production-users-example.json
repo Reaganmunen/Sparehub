@@ -1,0 +1,14 @@
+{
+  "business_name": "Spare Hub",
+  "branches": [
+    { "code": "BB", "name": "Motorcycle Center", "shop_type": "boda|bike|motor", "town": "Mombasa", "phone": "07XXXXXXXX", "mpesa_till_number": "XXXXXXX" },
+    { "code": "TT", "name": "Medwill Tuk Tuk", "shop_type": "tuk", "town": "Mombasa", "phone": "07XXXXXXXX", "mpesa_till_number": "XXXXXXX" }
+  ],
+  "users": [
+    { "username": "fred", "full_name": "Fred Surname", "role": "owner", "email": "fred@example.com", "phone": "07XXXXXXXX" },
+    { "username": "bb.manager", "full_name": "Real Name", "role": "manager", "branch": "BB", "phone": "07XXXXXXXX" },
+    { "username": "bb.cashier1", "full_name": "Real Name", "role": "cashier", "branch": "BB", "phone": "07XXXXXXXX", "max_discount_percent": 5 },
+    { "username": "tt.manager", "full_name": "Real Name", "role": "manager", "branch": "TT", "phone": "07XXXXXXXX" },
+    { "username": "tt.cashier1", "full_name": "Real Name", "role": "cashier", "branch": "TT", "phone": "07XXXXXXXX", "max_discount_percent": 5 }
+  ]
+}

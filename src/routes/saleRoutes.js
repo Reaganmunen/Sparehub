@@ -8,6 +8,7 @@ router.use(authenticate);
 
 // ---- fixed paths first ----
 router.post('/checkout', sale.checkout);
+router.post('/sync', sale.sync); // sales made offline, uploaded when the internet is back
 router.post('/hold', sale.hold);
 router.get('/held', sale.listHeld);
 router.get('/', sale.list);

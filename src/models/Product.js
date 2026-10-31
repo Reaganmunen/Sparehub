@@ -77,6 +77,26 @@ class Product {
     return rows;
   }
 
+  /**
+   * The whole catalogue of one shop for the till to keep on the computer (works without internet).
+   * Same fields as searchForPos, plus category_id for the category filter. Never includes buying or floor prices.
+   */
+  static async allForPos(branchId, opts = {}) {
+    if (!branchId) throw new AppError('branchId is required');
+    const { rows } = await db.query(
+      `SELECT v.product_id, v.sku, v.barcode, v.part_number, v.product_name, v.category, p.category_id, v.brand, v.unit,
+              v.quantity, v.selling_price, v.wholesale_price, v.tax_rate, v.track_stock, v.shelf_location
+         FROM v_pos_products v
+         JOIN products p ON p.id = v.product_id
+        WHERE v.branch_id = $1
+        ORDER BY v.product_name
+        LIMIT 20000`,
+      [branchId],
+      opts
+    );
+    return rows;
+  }
+
   /** Exact barcode or SKU scan at the till. */
   static async findForPosByCode(branchId, code, opts = {}) {
     const { rows } = await db.query(

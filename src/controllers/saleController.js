@@ -2,10 +2,10 @@
 
 const db = require('../config/db');
 const AppError = require('../utils/AppError');
-const { Sale, Payment, Customer } = require('../models');
+const { Sale, Payment, Customer, User } = require('../models');
 const {
   handlers, id, pick, canSeeCosts, scopeBranch, branchRequired, assertBranch, ctx, audit,
-  verifyApprover, approvedBy, requireOpenShift,
+  verifyApprover, approvedBy, requireOpenShift, isManager,
 } = require('../utils/controller');
 
 const round2 = db.round2;
@@ -98,7 +98,176 @@ async function buildSale(req, body) {
   };
 }
 
+// ---------------------------------------------------------------------------------------------
+// Offline sales
+// ---------------------------------------------------------------------------------------------
+const OFFLINE_METHODS = ['cash', 'mpesa', 'card', 'bank_transfer']; // no mpesa_stk: the prompt needs internet
+
+let offlineTableReady = null;
+/** Creates the offline_sales table the first time it is needed (database/offline_sales.sql has the same SQL). */
+function ensureOfflineTable() {
+  if (!offlineTableReady) {
+    offlineTableReady = db
+      .query(
+        `CREATE TABLE IF NOT EXISTS offline_sales (
+           client_ref text PRIMARY KEY, sale_id integer, receipt_no text, offline_label text,
+           branch_id integer NOT NULL, user_id integer NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`
+      )
+      .catch((err) => {
+        offlineTableReady = null; // try again next time
+        throw err;
+      });
+  }
+  return offlineTableReady;
+}
+
+/** Only accepts a time that makes sense: not in the future, not older than 45 days. Otherwise "now" is used. */
+function sensibleTime(value) {
+  const t = Date.parse(value);
+  const now = Date.now();
+  return Number.isFinite(t) && t <= now + 5 * 60 * 1000 && t >= now - 45 * 24 * 3600 * 1000 ? new Date(t).toISOString() : null;
+}
+
+/**
+ * Checks the lines of a sale that was ALREADY made at the till. The customer paid the price on the offline receipt,
+ * so that price is kept. The one rule still enforced is the floor price: below it needs someone who may override it.
+ */
+async function prepareOfflineItems(cashier, branchId, items) {
+  if (!Array.isArray(items) || !items.length) throw new AppError('This sale has no items');
+  const ids = [...new Set(items.map((i) => id(i.product_id, 'product_id')))];
+  const { rows } = await db.query(
+    'SELECT product_id, product_name, min_selling_price FROM v_pos_products WHERE branch_id = $1 AND product_id = ANY($2::int[])',
+    [branchId, ids]
+  );
+  const byId = new Map(rows.map((r) => [r.product_id, r]));
+  const canOverride = cashier.role === 'owner' || Boolean(cashier.can_override_min_price);
+
+  return items.map((it) => {
+    const p = byId.get(Number(it.product_id));
+    if (!p) throw new AppError(`"${it.name || 'Product ' + it.product_id}" is no longer available in this shop`, 404, 'PRODUCT_GONE');
+    const qty = Number(it.quantity);
+    const unit = Number(it.unit_price);
+    if (!(qty > 0) || !Number.isFinite(unit) || unit < 0) throw new AppError(`Check the quantity or price of "${p.product_name}"`);
+    let override = null;
+    if (unit < Number(p.min_selling_price) - 0.004) {
+      if (!canOverride) throw new AppError(`"${p.product_name}" was sold below the minimum price (KES ${unit}). A manager must approve this sale.`, 403, 'BELOW_MIN_PRICE');
+      override = cashier.id;
+    }
+    return { product_id: p.product_id, quantity: qty, unit_price: unit, discount_amount: 0, price_override_by: override };
+  });
+}
+
+/** Records one offline sale. Never throws: always returns { client_ref, status: 'synced' | 'duplicate' | 'failed', ... }. */
+async function syncOne(req, raw) {
+  const ref = String((raw && raw.client_ref) || '');
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(ref)) return { client_ref: ref, status: 'failed', message: 'This sale has no valid reference', transient: false };
+
+  try {
+    await ensureOfflineTable();
+
+    // who made the sale: themselves, or (for a manager / the owner uploading) the cashier named on it
+    const cashierId = raw.cashier_id ? id(raw.cashier_id, 'cashier_id') : req.user.id;
+    if (cashierId !== req.user.id && !isManager(req.user)) throw new AppError('That sale was made by another cashier', 403, 'NOT_YOUR_SALE');
+    const cashier = cashierId === req.user.id ? req.user : await User.findById(cashierId);
+    if (!cashier) throw new AppError('The cashier of this sale no longer exists', 404);
+
+    const branchId = id(raw.branch_id, 'branch_id');
+    assertBranch(req, branchId);
+    if (cashier.role !== 'owner' && Number(cashier.branch_id) !== branchId) throw new AppError('This cashier does not work in that shop', 403, 'OTHER_BRANCH');
+
+    const saleType = raw.sale_type === 'wholesale' ? 'wholesale' : 'retail';
+    const items = await prepareOfflineItems(cashier, branchId, raw.items);
+
+    const payments = (Array.isArray(raw.payments) ? raw.payments : []).map((p) => {
+      const method = String(p.method || '');
+      if (!OFFLINE_METHODS.includes(method)) throw new AppError(`Payment method "${method}" cannot be used for an offline sale`);
+      const amount = Number(p.amount);
+      if (!(amount > 0)) throw new AppError('Every payment must be more than zero');
+      if (method === 'mpesa' && !String(p.reference || '').trim()) throw new AppError('An M-Pesa payment needs its transaction code');
+      return { method, amount, reference: p.reference ? String(p.reference).trim() : undefined };
+    });
+
+    // a shift id is only trusted if it really is that cashier's shift in that shop; otherwise the open shift (if any) is used
+    let shiftId = null;
+    if (raw.shift_id) {
+      const { rows } = await db.query('SELECT id FROM shifts WHERE id = $1 AND cashier_id = $2 AND branch_id = $3', [Number(raw.shift_id) || 0, cashierId, branchId]);
+      shiftId = rows[0] ? rows[0].id : null;
+    }
+
+    const label = String(raw.label || '').slice(0, 40);
+    const unverified = payments.filter((p) => p.method === 'mpesa').map((p) => String(p.reference).toUpperCase());
+    const notes = [
+      `OFFLINE SALE ${label}`.trim(),
+      unverified.length ? `M-Pesa code typed by hand while offline, not checked: ${unverified.join(', ')}` : null,
+      raw.notes ? String(raw.notes).slice(0, 300) : null,
+    ].filter(Boolean).join(' | ');
+    const soldAt = sensibleTime(raw.sold_at);
+
+    const result = await db.withTransaction(req.user.id, async (client) => {
+      // claim the reference first: if it is already there this sale was uploaded before
+      const claim = await client.query(
+        `INSERT INTO offline_sales (client_ref, branch_id, user_id, offline_label) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (client_ref) DO NOTHING RETURNING client_ref`,
+        [ref, branchId, req.user.id, label || null]
+      );
+      if (!claim.rowCount) return { duplicate: true };
+
+      const sale = await Sale.checkout(
+        {
+          branch_id: branchId, cashier_id: cashierId, customer_id: raw.customer_id ? id(raw.customer_id, 'customer_id') : null,
+          sale_type: saleType, notes, items, payments, shift_id: shiftId, sold_at: soldAt,
+          force_allow_negative: true, // the goods already left the shop
+        },
+        { client, userId: req.user.id }
+      );
+      await client.query('UPDATE offline_sales SET sale_id = $2, receipt_no = $3 WHERE client_ref = $1', [ref, sale.id, sale.receipt_no]);
+      return { sale };
+    });
+
+    if (result.duplicate) {
+      const { rows } = await db.query('SELECT sale_id, receipt_no FROM offline_sales WHERE client_ref = $1', [ref]);
+      return { client_ref: ref, status: 'duplicate', sale_id: rows[0] && rows[0].sale_id, receipt_no: rows[0] && rows[0].receipt_no };
+    }
+
+    const sale = result.sale;
+    const expected = Number(raw.expected_total);
+    const mismatch = Number.isFinite(expected) && Math.abs(expected - Number(sale.total)) > 0.5;
+    await audit(req, 'sale.offline_sync', 'sale', sale.id, {
+      receipt_no: sale.receipt_no, offline_label: label, total: sale.total, sold_at: soldAt, cashier_id: cashierId,
+      ...(mismatch ? { total_on_receipt: expected } : {}),
+    }, sale.branch_id).catch(() => {});
+    return {
+      client_ref: ref, status: 'synced', sale_id: sale.id, receipt_no: sale.receipt_no,
+      ...(mismatch ? { warning: `The total on the offline receipt was KES ${expected} but the system calculated KES ${sale.total}.` } : {}),
+    };
+  } catch (err) {
+    if (err instanceof AppError) return { client_ref: ref, status: 'failed', code: err.code, message: err.message, transient: err.status >= 500 };
+    console.error('Offline sale sync failed:', err);
+    // data / constraint problems will not fix themselves; connection problems and the like are worth retrying
+    const permanent = typeof err.code === 'string' && /^2[23]/.test(err.code);
+    return {
+      client_ref: ref, status: 'failed', code: 'SERVER_ERROR', transient: !permanent,
+      message: permanent ? `The database refused this sale${err.constraint ? ` (${err.constraint})` : ''}. Ask the developer.` : 'The server had a problem. It will try again.',
+    };
+  }
+}
+
 module.exports = handlers({
+  /**
+   * POST /sales/sync   { sales: [ {client_ref, label, branch_id, cashier_id?, shift_id?, sale_type, customer_id?, sold_at, notes?,
+   *                                expected_total, items:[{product_id, quantity, unit_price}], payments:[{method, amount, reference?}]} ] }
+   * Uploads sales that were taken without internet. Each one is saved on its own and answered on its own, so one bad
+   * sale never blocks the rest. Sending the same client_ref again is safe: it answers "duplicate" and saves nothing.
+   */
+  sync: async (req, res) => {
+    const list = Array.isArray(req.body && req.body.sales) ? req.body.sales : [];
+    if (!list.length) throw new AppError('There are no sales to upload');
+    if (list.length > 25) throw new AppError('Send at most 25 sales at a time');
+    const results = [];
+    for (const raw of list) results.push(await syncOne(req, raw));
+    res.json({ data: results });
+  },
+
   /**
    * POST /sales/checkout   the normal "Pay" button
    * { branch_id?, customer_id?, sale_type, due_date?, notes?, approval?: {username,password},

@@ -1,0 +1,11 @@
+{
+  "name": "Spare Hub",
+  "short_name": "Spare Hub",
+  "description": "Inventory and point of sale",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111111",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
