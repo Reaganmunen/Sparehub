@@ -1,15 +1,11 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "outputDirectory": "public",
-  "regions": ["cpt1"],
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 30,
-      "includeFiles": "node_modules/pdfkit/js/data/**"
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/app.js",
+      "use": "@vercel/node",
+      "config": { "includeFiles": ["public/**"] }
     }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/health", "destination": "/api" }
-  ]
+  ],
+  "routes": [{ "src": "/(.*)", "dest": "src/app.js" }]
 }
